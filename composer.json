@@ -3,7 +3,7 @@
   "description": "SD Park Shuttle & Fly promotional landing page with Stripe checkout.",
   "type": "project",
   "require": {
-    "php": ">=7.4",
+    "php": ">=8.2",
     "stripe/stripe-php": "^16.0",
     "vlucas/phpdotenv": "^5.6"
   },
