@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/app/reservations.php';
 $lots = parking_lots();
 $times = [];
 $now = new DateTimeImmutable('now', app_timezone());
+$recaptchaSiteKey = config('RECAPTCHA_SITE_KEY', '');
 
 for ($hour = 0; $hour < 24; $hour++) {
     foreach ([0, 30] as $minute) {
@@ -85,8 +86,10 @@ for ($hour = 0; $hour < 24; $hour++) {
             data-current-date="<?= htmlspecialchars($now->format('Y-m-d')) ?>"
             data-current-time="<?= htmlspecialchars($now->format('H:i')) ?>"
             data-min-reservation-days="<?= min_reservation_days() ?>"
+            data-recaptcha-site-key="<?= htmlspecialchars($recaptchaSiteKey) ?>"
             novalidate
           >
+            <input type="hidden" name="recaptcha_token" value="" data-recaptcha-token>
             <div class="stepper" aria-label="Reservation steps">
               <span class="stepper__item is-active" data-step-indicator="0">Trip</span>
               <span class="stepper__item" data-step-indicator="1">Details</span>
@@ -307,6 +310,9 @@ for ($hour = 0; $hour < 24; $hour++) {
     </div>
   </footer>
 
+  <?php if ($recaptchaSiteKey !== ''): ?>
+    <script src="https://www.google.com/recaptcha/api.js?render=<?= urlencode($recaptchaSiteKey) ?>" defer></script>
+  <?php endif; ?>
   <script src="/assets/js/app.js" defer></script>
 </body>
 </html>

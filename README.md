@@ -33,6 +33,9 @@ MAIL_FROM_EMAIL=no-reply@sdparkshuttlefly.com
 ADMIN_EMAIL=reservations@sdparkshuttlefly.com
 RESERVATION_API_ENDPOINT=https://tudominio.com/api/reservation
 RESERVATION_API_KEY=...
+RECAPTCHA_SITE_KEY=...
+RECAPTCHA_SECRET_KEY=...
+RECAPTCHA_MIN_SCORE=0.5
 ```
 
 Reservations submit to:

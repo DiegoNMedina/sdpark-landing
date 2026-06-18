@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/integrations.php';
+require_once dirname(__DIR__) . '/app/recaptcha.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -19,6 +20,20 @@ if ($errors !== []) {
     echo json_encode([
         'message' => 'Please review the reservation details.',
         'errors' => $errors,
+    ]);
+    exit;
+}
+
+$recaptcha = verify_recaptcha_token((string) ($_POST['recaptcha_token'] ?? ''));
+
+if (!$recaptcha['ok']) {
+    http_response_code(422);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'message' => 'We could not verify this reservation request. Please try again.',
+        'errors' => [
+            'recaptcha' => $recaptcha['message'],
+        ],
     ]);
     exit;
 }

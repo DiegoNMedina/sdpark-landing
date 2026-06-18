@@ -16,10 +16,13 @@
   const summaryDropoff = form.querySelector('[data-summary-dropoff]');
   const summaryPickup = form.querySelector('[data-summary-pickup]');
   const summaryCustomer = form.querySelector('[data-summary-customer]');
+  const recaptchaToken = form.querySelector('[data-recaptcha-token]');
   let currentStep = 0;
+  let recaptchaReadyToSubmit = false;
   const currentDateValue = form.dataset.currentDate;
   const currentTimeValue = form.dataset.currentTime;
   const minReservationDays = Math.max(1, Number(form.dataset.minReservationDays || 1));
+  const recaptchaSiteKey = form.dataset.recaptchaSiteKey || '';
   const currency = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD'
@@ -275,6 +278,28 @@
     syncTimeOptions();
   }
 
+  function requestRecaptchaToken() {
+    return new Promise(function (resolve, reject) {
+      if (!recaptchaSiteKey) {
+        resolve('');
+        return;
+      }
+
+      if (!window.grecaptcha || typeof window.grecaptcha.ready !== 'function') {
+        reject(new Error('reCAPTCHA is not ready. Please try again.'));
+        return;
+      }
+
+      window.grecaptcha.ready(function () {
+        window.grecaptcha.execute(recaptchaSiteKey, { action: 'reservation_submit' })
+          .then(resolve)
+          .catch(function () {
+            reject(new Error('reCAPTCHA verification failed. Please try again.'));
+          });
+      });
+    });
+  }
+
   function showStep(stepIndex) {
     currentStep = Math.max(0, Math.min(stepIndex, steps.length - 1));
 
@@ -334,13 +359,32 @@
   });
 
   form.addEventListener('submit', function (event) {
+    if (recaptchaReadyToSubmit) {
+      return;
+    }
+
+    event.preventDefault();
+
     for (let index = 0; index < steps.length; index += 1) {
       if (!validateStep(index)) {
-        event.preventDefault();
         showStep(index);
         return;
       }
     }
+
+    requestRecaptchaToken()
+      .then(function (token) {
+        if (recaptchaToken) {
+          recaptchaToken.value = token;
+        }
+
+        recaptchaReadyToSubmit = true;
+        form.submit();
+      })
+      .catch(function (error) {
+        showStep(2);
+        showStepError(2, error.message);
+      });
   });
 
   document.querySelectorAll('[data-lot-jump]').forEach(function (link) {
