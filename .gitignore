@@ -1,0 +1,7 @@
+/vendor/
+/.env
+/storage/logs/*.log
+/storage/reservations/*.json
+/storage/processed/*.json
+/storage/api-payloads/*.json
+.DS_Store

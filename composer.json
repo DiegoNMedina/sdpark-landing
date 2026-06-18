@@ -1,0 +1,15 @@
+{
+  "name": "sdpark/landing",
+  "description": "SD Park Shuttle & Fly promotional landing page with Stripe checkout.",
+  "type": "project",
+  "require": {
+    "php": ">=7.4",
+    "stripe/stripe-php": "^16.0",
+    "vlucas/phpdotenv": "^5.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "SdPark\\": "app/"
+    }
+  }
+}
