@@ -2,26 +2,29 @@
 
 declare(strict_types=1);
 
-require_once dirname(__DIR__) . '/app/stripe.php';
 require_once dirname(__DIR__) . '/app/integrations.php';
 
-$sessionId = (string) ($_GET['session_id'] ?? '');
+$confirmation = (string) ($_GET['confirmation'] ?? '');
 $payload = null;
 $processResult = null;
 $error = '';
 
-if ($sessionId !== '') {
-    try {
-        $session = retrieve_checkout_session($sessionId);
-        $payload = reservation_payload_from_stripe_session($session);
+if ($confirmation !== '') {
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_start();
+    }
 
-        if (($payload['payment']['payment_status'] ?? '') === 'paid') {
-            $payload['status'] = 'paid';
-            save_reservation_payload($payload);
-            $processResult = process_completed_reservation($payload);
-        }
-    } catch (Throwable $exception) {
-        $error = $exception->getMessage();
+    $confirmationData = $_SESSION['reservation_confirmation'] ?? null;
+
+    if (
+        is_array($confirmationData)
+        && isset($confirmationData['payload'])
+        && ($confirmationData['payload']['confirmation_number'] ?? '') === $confirmation
+    ) {
+        $payload = $confirmationData['payload'];
+        $processResult = $confirmationData['process_result'] ?? null;
+    } else {
+        $error = 'Reservation details could not be found.';
     }
 }
 
@@ -41,9 +44,9 @@ $reservation = $payload ? reservation_public_view($payload) : [];
     <div class="confirmation-hero">
       <span class="confirmation-hero__mark" aria-hidden="true">✓</span>
       <div>
-        <p class="eyebrow">Payment complete</p>
+        <p class="eyebrow">Reservation complete</p>
         <h1>Your parking is reserved.</h1>
-        <p>We sent your confirmation details to your email. Please keep this page for your records.</p>
+        <p>We sent your reservation details to your email. Please keep this page for your records.</p>
       </div>
     </div>
 
@@ -58,13 +61,19 @@ $reservation = $payload ? reservation_public_view($payload) : [];
           <strong><?= htmlspecialchars($reservation['status']) ?></strong>
         </div>
         <div>
-          <span>Total paid</span>
-          <strong><?= htmlspecialchars($reservation['total_paid']) ?></strong>
+          <span>Estimated total</span>
+          <strong><?= htmlspecialchars($reservation['estimated_total']) ?></strong>
         </div>
         <div>
           <span>Confirmation #</span>
           <strong><?= htmlspecialchars($reservation['confirmation_number']) ?></strong>
         </div>
+        <?php if (!empty($processResult['api_reservation_id'])): ?>
+          <div>
+            <span>Reservation ID</span>
+            <strong><?= htmlspecialchars((string) $processResult['api_reservation_id']) ?></strong>
+          </div>
+        <?php endif; ?>
       </section>
 
       <section class="receipt-grid">
@@ -104,7 +113,7 @@ $reservation = $payload ? reservation_public_view($payload) : [];
         </article>
 
         <article class="receipt-panel">
-          <span class="receipt-panel__label">Payment</span>
+          <span class="receipt-panel__label">Estimate</span>
           <dl class="receipt-list">
             <div>
               <dt>Days</dt>
@@ -115,14 +124,12 @@ $reservation = $payload ? reservation_public_view($payload) : [];
               <dd><?= htmlspecialchars($reservation['daily_rate']) ?></dd>
             </div>
             <div>
-              <dt>Total paid</dt>
-              <dd><?= htmlspecialchars($reservation['total_paid']) ?></dd>
+              <dt>Estimated total</dt>
+              <dd><?= htmlspecialchars($reservation['estimated_total']) ?></dd>
             </div>
           </dl>
         </article>
       </section>
-    <?php elseif ($sessionId !== ''): ?>
-      <p class="confirmation__meta">We are still retrieving your reservation details. Please check your email confirmation.</p>
     <?php endif; ?>
 
     <?php if (is_array($processResult)): ?>

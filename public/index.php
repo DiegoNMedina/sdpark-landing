@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/app/reservations.php';
 
 $lots = parking_lots();
 $times = [];
+$now = new DateTimeImmutable('now', app_timezone());
 
 for ($hour = 0; $hour < 24; $hour++) {
     foreach ([0, 30] as $minute) {
@@ -41,11 +42,7 @@ for ($hour = 0; $hour < 24; $hour++) {
 
     <nav class="nav container" aria-label="Main navigation">
       <a href="/" class="brand" aria-label="SD Park Shuttle & Fly home">
-        <span class="brand__mark">SD</span>
-        <span>
-          <strong>Park Shuttle & Fly</strong>
-          <small>San Diego Airport Parking</small>
-        </span>
+        <img class="brand__logo" src="/assets/images/logosdpark.png" alt="SD Park Shuttle & Fly Airport Parking">
       </a>
       <div class="nav__links">
         <a href="#rates">Rates</a>
@@ -65,7 +62,6 @@ for ($hour = 0; $hour < 24; $hour++) {
           <p class="hero__lead">Low-price airport and cruise parking minutes from SAN, with free courtesy shuttle service included with your reservation.</p>
           <div class="hero__actions">
             <a class="button" href="#reserve">Make a Reservation</a>
-            <a class="button button--ghost" href="#rates">View Daily Rate</a>
           </div>
           <div class="trust-row" aria-label="Highlights">
             <span>Family owned</span>
@@ -78,14 +74,23 @@ for ($hour = 0; $hour < 24; $hour++) {
           <div class="reservation-card__header">
             <p class="eyebrow">Lock your rate</p>
             <h2>$18.95 daily rate</h2>
-            <p>Parking is paid online. Restrictions apply.</p>
+            <p>Reserve your spot now. Payment is not required today.</p>
           </div>
 
-          <form class="reservation-form" action="/api/create-checkout-session.php" method="post" data-reservation-form novalidate>
+          <form
+            class="reservation-form"
+            action="/api/create-reservation.php"
+            method="post"
+            data-reservation-form
+            data-current-date="<?= htmlspecialchars($now->format('Y-m-d')) ?>"
+            data-current-time="<?= htmlspecialchars($now->format('H:i')) ?>"
+            data-min-reservation-days="<?= min_reservation_days() ?>"
+            novalidate
+          >
             <div class="stepper" aria-label="Reservation steps">
               <span class="stepper__item is-active" data-step-indicator="0">Trip</span>
               <span class="stepper__item" data-step-indicator="1">Details</span>
-              <span class="stepper__item" data-step-indicator="2">Pay</span>
+              <span class="stepper__item" data-step-indicator="2">Review</span>
             </div>
 
             <fieldset class="form-step is-active" data-form-step="0">
@@ -168,7 +173,7 @@ for ($hour = 0; $hour < 24; $hour++) {
             </fieldset>
 
             <fieldset class="form-step" data-form-step="2">
-              <legend>Review & Pay</legend>
+              <legend>Review & Reserve</legend>
               <label>
                 Parking Lot
                 <select name="lot" required data-rate-source>
@@ -203,9 +208,9 @@ for ($hour = 0; $hour < 24; $hour++) {
               <p class="step-error" data-step-error="2" aria-live="polite"></p>
               <div class="form-actions">
                 <button class="button button--ghost" type="button" data-prev-step>Back</button>
-                <button class="button" type="submit">Continue to Secure Checkout</button>
+                <button class="button" type="submit">Complete Reservation</button>
               </div>
-              <p class="form-note">Free shuttle included. Final availability is confirmed at checkout.</p>
+              <p class="form-note">Free shuttle included. Your confirmation will be sent by email.</p>
             </fieldset>
           </form>
         </aside>

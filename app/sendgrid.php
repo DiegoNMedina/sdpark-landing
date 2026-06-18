@@ -16,7 +16,7 @@ function reservation_email_html(array $payload, string $audience): string
 {
     $rows = reservation_display_rows($payload);
     $title = $audience === 'admin'
-        ? 'New SD Park reservation paid'
+        ? 'New SD Park reservation'
         : 'Your SD Park reservation is confirmed';
     $htmlRows = '';
 
@@ -40,7 +40,7 @@ function reservation_email_html(array $payload, string $audience): string
 function reservation_email_text(array $payload, string $audience): string
 {
     $title = $audience === 'admin'
-        ? 'New SD Park reservation paid'
+        ? 'New SD Park reservation'
         : 'Your SD Park reservation is confirmed';
     $lines = [$title, ''];
 
@@ -84,7 +84,8 @@ function send_sendgrid_email(array $payload): bool
         $log = [
             'created_at' => (new DateTimeImmutable())->format(DateTimeInterface::ATOM),
             'reason' => 'sendgrid_not_configured',
-            'payload' => $payload,
+            'to' => $payload['personalizations'][0]['to'][0]['email'] ?? null,
+            'subject' => $payload['subject'] ?? null,
         ];
         file_put_contents(dirname(__DIR__) . '/storage/logs/prepared-emails.log', json_encode($log) . "\n", FILE_APPEND);
         return false;
@@ -112,8 +113,8 @@ function send_reservation_emails(array $payload): array
 {
     $payload = ensure_confirmation_number($payload);
     $customerName = $payload['customer']['full_name'];
-    $adminSubject = 'New paid reservation: ' . $payload['confirmation_number'];
-    $customerSubject = 'Your SD Park reservation is confirmed: ' . $payload['confirmation_number'];
+    $adminSubject = 'New SD Park parking reservation';
+    $customerSubject = 'Your SD Park parking reservation is confirmed';
     $messages = [
         'admin' => sendgrid_payload(
             (string) config('ADMIN_EMAIL', ''),

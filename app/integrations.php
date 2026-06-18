@@ -11,35 +11,66 @@ function future_api_payload(array $payload): array
     $payload = ensure_confirmation_number($payload);
 
     return [
-        'reservation_id' => $payload['reservation_id'],
-        'confirmation_number' => $payload['confirmation_number'],
-        'status' => $payload['status'],
-        'customer' => $payload['customer'],
-        'parking' => $payload['parking'],
-        'payment' => $payload['payment'],
-        'source_system' => 'sdpark_landing',
+        'first_name' => $payload['customer']['first_name'],
+        'last_name' => $payload['customer']['last_name'],
+        'email' => $payload['customer']['email'],
+        'phone' => $payload['customer']['phone'],
+        'parking_lot' => api_parking_lot_value((string) $payload['parking']['lot_key']),
+        'start_date' => $payload['parking']['dropoff_date'],
+        'drop_off_time' => api_time_value((string) $payload['parking']['dropoff_time']),
+        'end_date' => $payload['parking']['pickup_date'],
+        'pick_up_time' => api_time_value((string) $payload['parking']['pickup_time']),
+        'how_did_you_hear_about_us' => $payload['customer']['source'] ?: 'Landing Page',
     ];
+}
+
+function api_parking_lot_value(string $lotKey): int
+{
+    return match ($lotKey) {
+        'lot-a' => 1,
+        'lot-b' => 2,
+        'cruise' => 3,
+        default => 1,
+    };
+}
+
+function api_time_value(string $time): string
+{
+    if ($time === '') {
+        return '';
+    }
+
+    return strlen($time) === 5 ? $time . ':00' : $time;
 }
 
 function push_reservation_to_future_api(array $payload): bool
 {
+    return submit_reservation_to_api($payload)['ok'];
+}
+
+function submit_reservation_to_api(array $payload): array
+{
+    $payload = ensure_confirmation_number($payload);
     $apiPayload = future_api_payload($payload);
     $endpoint = config('RESERVATION_API_ENDPOINT', '');
 
-    file_put_contents(
-        dirname(__DIR__) . '/storage/api-payloads/' . $payload['reservation_id'] . '.json',
-        json_encode($apiPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-    );
-
     if ($endpoint === '') {
-        return false;
+        return [
+            'ok' => false,
+            'status' => 0,
+            'data' => null,
+            'message' => 'Reservation API endpoint is not configured.',
+        ];
     }
 
-    $headers = ['Content-Type: application/json'];
-    $token = config('RESERVATION_API_TOKEN', '');
+    $headers = [
+        'Content-Type: application/json',
+        'Accept: application/json',
+    ];
+    $token = config('RESERVATION_API_KEY', config('RESERVATION_API_TOKEN', ''));
 
     if ($token !== '') {
-        $headers[] = 'Authorization: Bearer ' . $token;
+        $headers[] = 'api-key: ' . $token;
     }
 
     $ch = curl_init($endpoint);
@@ -50,20 +81,69 @@ function push_reservation_to_future_api(array $payload): bool
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 20,
     ]);
-    curl_exec($ch);
+    $response = curl_exec($ch);
     $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
     curl_close($ch);
+    $decoded = is_string($response) ? json_decode($response, true) : null;
+    $ok = $status >= 200 && $status < 300;
 
-    return $status >= 200 && $status < 300;
+    file_put_contents(
+        dirname(__DIR__) . '/storage/logs/reservation-api.log',
+        json_encode([
+            'created_at' => (new DateTimeImmutable())->format(DateTimeInterface::ATOM),
+            'reservation_id' => $payload['reservation_id'],
+            'confirmation_number' => $payload['confirmation_number'] ?? null,
+            'status' => $status,
+            'ok' => $ok,
+            'error' => $error,
+            'response' => is_string($response) ? mb_substr($response, 0, 1000) : null,
+        ], JSON_UNESCAPED_SLASHES) . "\n",
+        FILE_APPEND
+    );
+
+    return [
+        'ok' => $ok,
+        'status' => $status,
+        'data' => is_array($decoded) ? $decoded : null,
+        'message' => is_array($decoded) ? (string) ($decoded['msg'] ?? $decoded['message'] ?? '') : $error,
+    ];
+}
+
+function process_reservation_submission(array $payload): array
+{
+    $payload = ensure_confirmation_number($payload);
+    $apiResult = submit_reservation_to_api($payload);
+
+    if (!$apiResult['ok']) {
+        throw new RuntimeException('Reservation API error: ' . ($apiResult['message'] ?: 'Unable to create reservation.'));
+    }
+
+    $apiReservationId = $apiResult['data']['data']['id'] ?? null;
+
+    if ($apiReservationId !== null) {
+        $payload['api_reservation_id'] = $apiReservationId;
+    }
+
+    return [
+        'processed_at' => (new DateTimeImmutable())->format(DateTimeInterface::ATOM),
+        'reservation_id' => $payload['reservation_id'],
+        'confirmation_number' => $payload['confirmation_number'],
+        'api_reservation_id' => $apiReservationId,
+        'emails' => send_reservation_emails($payload),
+        'api' => $apiResult,
+        'payload' => $payload,
+    ];
 }
 
 function process_completed_reservation(array $payload): array
 {
     $payload = ensure_confirmation_number($payload);
     $sessionId = (string) ($payload['payment']['checkout_session_id'] ?? '');
-    $processedPath = processed_storage_path($sessionId);
+    $processedKey = $sessionId !== '' ? $sessionId : (string) $payload['reservation_id'];
+    $processedPath = processed_storage_path($processedKey);
 
-    if ($sessionId !== '' && is_file($processedPath)) {
+    if (is_file($processedPath)) {
         $existing = json_decode((string) file_get_contents($processedPath), true);
         return is_array($existing) ? $existing : ['already_processed' => true];
     }
@@ -77,9 +157,7 @@ function process_completed_reservation(array $payload): array
         'future_api' => push_reservation_to_future_api($payload),
     ];
 
-    if ($sessionId !== '') {
-        file_put_contents($processedPath, json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-    }
+    file_put_contents($processedPath, json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
     return $result;
 }

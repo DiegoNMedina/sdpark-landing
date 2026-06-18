@@ -30,3 +30,13 @@ function app_url(string $path = ''): string
 
     return $base . ($path === '/' ? '' : $path);
 }
+
+function app_timezone(): DateTimeZone
+{
+    return new DateTimeZone(config('APP_TIMEZONE', 'America/Los_Angeles'));
+}
+
+function min_reservation_days(): int
+{
+    return max(1, (int) config('MIN_RESERVATION_DAYS', '1'));
+}

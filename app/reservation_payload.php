@@ -44,7 +44,7 @@ function reservation_payload_from_form(array $reservation, string $reservationId
     return [
         'reservation_id' => $reservationId,
         'confirmation_number' => confirmation_number_from_reservation_id($reservationId),
-        'status' => 'pending_payment',
+        'status' => 'reserved',
         'created_at' => (new DateTimeImmutable())->format(DateTimeInterface::ATOM),
         'customer' => [
             'first_name' => $reservation['first_name'],
@@ -66,11 +66,11 @@ function reservation_payload_from_form(array $reservation, string $reservationId
             'daily_rate_cents' => $lot['daily_rate_cents'],
         ],
         'payment' => [
-            'provider' => 'stripe',
+            'provider' => 'none',
             'currency' => config('STRIPE_CURRENCY', 'usd'),
             'amount_total_cents' => $totalCents,
             'checkout_session_id' => null,
-            'payment_status' => 'unpaid',
+            'payment_status' => 'not_required',
         ],
     ];
 }
@@ -171,7 +171,7 @@ function reservation_display_rows(array $payload): array
         'Pick-Up' => $payload['parking']['pickup_date'] . ' ' . $payload['parking']['pickup_time'],
         'Days' => (string) $payload['parking']['days'],
         'Daily Rate' => money_from_cents((int) $payload['parking']['daily_rate_cents'], (string) $payload['payment']['currency']),
-        'Total Paid' => money_from_cents((int) $payload['payment']['amount_total_cents'], (string) $payload['payment']['currency']),
+        'Estimated Total' => money_from_cents((int) $payload['payment']['amount_total_cents'], (string) $payload['payment']['currency']),
         'How Did You Hear About Us?' => $payload['customer']['source'] ?: 'Not provided',
     ];
 }
@@ -192,7 +192,7 @@ function reservation_public_view(array $payload): array
         'pickup' => $payload['parking']['pickup_date'] . ' at ' . $payload['parking']['pickup_time'],
         'days' => (string) $payload['parking']['days'],
         'daily_rate' => money_from_cents((int) $payload['parking']['daily_rate_cents'], (string) $payload['payment']['currency']),
-        'total_paid' => money_from_cents((int) $payload['payment']['amount_total_cents'], (string) $payload['payment']['currency']),
+        'estimated_total' => money_from_cents((int) $payload['payment']['amount_total_cents'], (string) $payload['payment']['currency']),
         'source' => $payload['customer']['source'] ?: 'Not provided',
     ];
 }

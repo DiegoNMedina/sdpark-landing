@@ -17,16 +17,53 @@
   const summaryPickup = form.querySelector('[data-summary-pickup]');
   const summaryCustomer = form.querySelector('[data-summary-customer]');
   let currentStep = 0;
+  const currentDateValue = form.dataset.currentDate;
+  const currentTimeValue = form.dataset.currentTime;
+  const minReservationDays = Math.max(1, Number(form.dataset.minReservationDays || 1));
   const currency = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD'
   });
 
-  const today = new Date();
-  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+  const today = parseDateValue(currentDateValue) || new Date();
+  const tomorrow = addDays(today, 1);
 
   function dateValue(date) {
-    return date.toISOString().slice(0, 10);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
+  function parseDateValue(value) {
+    if (!value) {
+      return null;
+    }
+
+    const parts = value.split('-').map(Number);
+
+    if (parts.length !== 3 || parts.some(Number.isNaN)) {
+      return null;
+    }
+
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+
+  function addDays(date, days) {
+    const next = new Date(date.getTime());
+    next.setDate(next.getDate() + days);
+    return next;
+  }
+
+  function timeMinutes(value) {
+    const parts = value.split(':').map(Number);
+
+    if (parts.length !== 2 || parts.some(Number.isNaN)) {
+      return null;
+    }
+
+    return parts[0] * 60 + parts[1];
   }
 
   function dateTime(dateInput, timeInput) {
@@ -93,9 +130,25 @@
 
       const start = dateTime(startDate, startTime);
       const end = dateTime(endDate, endTime);
+      const now = new Date(`${currentDateValue}T${currentTimeValue}:00`);
 
       if (!start || !end || end <= start) {
         showStepError(stepIndex, 'Pick-up must be after drop-off.');
+        return false;
+      }
+
+      if (start < now) {
+        showStepError(stepIndex, 'Drop-off date and time cannot be in the past.');
+        return false;
+      }
+
+      if (end < now) {
+        showStepError(stepIndex, 'Pick-up date and time cannot be in the past.');
+        return false;
+      }
+
+      if (reservationDurationDays(start, end) < minReservationDays) {
+        showStepError(stepIndex, `Reservation must be at least ${minReservationDays} day${minReservationDays === 1 ? '' : 's'}.`);
         return false;
       }
     }
@@ -141,11 +194,85 @@
     let days = 1;
 
     if (start && end && end > start) {
-      const hours = (end.getTime() - start.getTime()) / 36e5;
-      days = Math.max(1, Math.ceil(hours / 24));
+      days = reservationDays(start, end);
     }
 
     estimateTotal.textContent = currency.format((selectedRateCents() * days) / 100);
+  }
+
+  function reservationDays(start, end) {
+    const hours = (end.getTime() - start.getTime()) / 36e5;
+    return Math.max(1, Math.ceil(hours / 24));
+  }
+
+  function reservationDurationDays(start, end) {
+    return (end.getTime() - start.getTime()) / 864e5;
+  }
+
+  function syncTimeOptions() {
+    const currentMinutes = timeMinutes(currentTimeValue);
+    const startMinutes = timeMinutes(startTime.value);
+    const isStartToday = startDate.value === currentDateValue;
+    const isEndToday = endDate.value === currentDateValue;
+    const isSameTripDate = startDate.value && startDate.value === endDate.value;
+
+    Array.from(startTime.options).forEach(function (option) {
+      const optionMinutes = timeMinutes(option.value);
+      option.disabled = isStartToday && currentMinutes !== null && optionMinutes !== null && optionMinutes < currentMinutes;
+    });
+
+    const nextStart = Array.from(startTime.options).find(function (option) {
+      return !option.disabled;
+    });
+
+    if (!nextStart && isStartToday) {
+      startDate.value = dateValue(addDays(today, 1));
+      endDate.value = endDate.value < startDate.value ? startDate.value : endDate.value;
+      syncTimeOptions();
+      return;
+    }
+
+    if (startTime.selectedOptions[0] && startTime.selectedOptions[0].disabled && nextStart) {
+      startTime.value = nextStart.value;
+    }
+
+    Array.from(endTime.options).forEach(function (option) {
+      const optionMinutes = timeMinutes(option.value);
+      const pastToday = isEndToday && currentMinutes !== null && optionMinutes !== null && optionMinutes < currentMinutes;
+      const beforeStart = isSameTripDate && startMinutes !== null && optionMinutes !== null && optionMinutes <= startMinutes;
+      option.disabled = pastToday || beforeStart;
+    });
+
+    const nextEnd = Array.from(endTime.options).find(function (option) {
+      return !option.disabled;
+    });
+
+    if (!nextEnd && endDate.value) {
+      endDate.value = dateValue(addDays(parseDateValue(endDate.value) || today, 1));
+      syncTimeOptions();
+      return;
+    }
+
+    if (endTime.selectedOptions[0] && endTime.selectedOptions[0].disabled && nextEnd) {
+      endTime.value = nextEnd.value;
+    }
+  }
+
+  function syncDateRules() {
+    startDate.min = currentDateValue;
+
+    if (startDate.value && startDate.value < currentDateValue) {
+      startDate.value = currentDateValue;
+    }
+
+    const minPickup = startDate.value || currentDateValue;
+    endDate.min = minPickup;
+
+    if (!endDate.value || endDate.value < minPickup) {
+      endDate.value = minPickup;
+    }
+
+    syncTimeOptions();
   }
 
   function showStep(stepIndex) {
@@ -179,10 +306,7 @@
   endTime.value = '08:00';
 
   form.addEventListener('change', function () {
-    if (startDate.value) {
-      endDate.min = startDate.value;
-    }
-
+    syncDateRules();
     updateEstimate();
     updateSummary();
     clearStepError(currentStep);
@@ -228,5 +352,6 @@
     });
   });
 
+  syncDateRules();
   showStep(0);
 }());
