@@ -10,6 +10,7 @@
   const endDate = form.querySelector('[data-end-date]');
   const endTime = form.querySelector('[data-end-time]');
   const lotSelect = form.querySelector('[data-rate-source]');
+  const lotPills = Array.from(form.querySelectorAll('[data-lot-pill]'));
   const estimateTotal = form.querySelector('[data-estimate-total]');
   const steps = Array.from(form.querySelectorAll('[data-form-step]'));
   const indicators = Array.from(form.querySelectorAll('[data-step-indicator]'));
@@ -203,6 +204,14 @@
     estimateTotal.textContent = currency.format((selectedRateCents() * days) / 100);
   }
 
+  function syncLotPills() {
+    lotPills.forEach(function (pill) {
+      const isActive = pill.dataset.lotPill === lotSelect.value;
+      pill.classList.toggle('is-active', isActive);
+      pill.setAttribute('aria-checked', isActive ? 'true' : 'false');
+    });
+  }
+
   function reservationDays(start, end) {
     const hours = (end.getTime() - start.getTime()) / 36e5;
     return Math.max(1, Math.ceil(hours / 24));
@@ -334,6 +343,7 @@
     syncDateRules();
     updateEstimate();
     updateSummary();
+    syncLotPills();
     clearStepError(currentStep);
   });
 
@@ -392,10 +402,20 @@
       lotSelect.value = link.dataset.lotJump;
       updateEstimate();
       updateSummary();
+      syncLotPills();
       form.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   });
 
+  lotPills.forEach(function (pill) {
+    pill.addEventListener('click', function () {
+      lotSelect.value = pill.dataset.lotPill;
+      syncLotPills();
+      updateEstimate();
+    });
+  });
+
   syncDateRules();
+  syncLotPills();
   showStep(0);
 }());

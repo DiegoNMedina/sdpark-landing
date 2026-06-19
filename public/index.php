@@ -177,16 +177,38 @@ for ($hour = 0; $hour < 24; $hour++) {
 
             <fieldset class="form-step" data-form-step="2">
               <legend>Review & Reserve</legend>
-              <label>
-                Parking Lot
-                <select name="lot" required data-rate-source>
+              <div class="lot-choice" data-lot-choice>
+                <span class="lot-choice__label">Parking Lot</span>
+                <div class="lot-pills" role="radiogroup" aria-label="Parking Lot">
+                  <?php foreach ($lots as $key => $lot): ?>
+                    <?php
+                      $shortName = match ($key) {
+                          'lot-a' => 'Lot A',
+                          'lot-b' => 'Lot B',
+                          'cruise' => 'Cruise',
+                          default => $lot['name'],
+                      };
+                    ?>
+                    <button
+                      class="lot-pill<?= $key === 'lot-a' ? ' is-active' : '' ?>"
+                      type="button"
+                      role="radio"
+                      aria-checked="<?= $key === 'lot-a' ? 'true' : 'false' ?>"
+                      data-lot-pill="<?= htmlspecialchars($key) ?>"
+                    >
+                      <strong><?= htmlspecialchars($shortName) ?></strong>
+                      <span>$<?= number_format($lot['daily_rate_cents'] / 100, 2) ?>/day</span>
+                    </button>
+                  <?php endforeach; ?>
+                </div>
+                <select class="visually-hidden" name="lot" required data-rate-source aria-hidden="true" tabindex="-1">
                   <?php foreach ($lots as $key => $lot): ?>
                     <option value="<?= htmlspecialchars($key) ?>" data-rate="<?= (int) $lot['daily_rate_cents'] ?>">
                       <?= htmlspecialchars($lot['name']) ?>
                     </option>
                   <?php endforeach; ?>
                 </select>
-              </label>
+              </div>
 
               <div class="reservation-summary">
                 <div>
