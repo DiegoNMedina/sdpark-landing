@@ -145,8 +145,8 @@ function render_reservation_form(
               <?php foreach ($availableLots as $key => $lot): ?>
                 <?php
                   $shortName = match ($key) {
-                      'lot-a' => 'Lot 1',
-                      'lot-b' => 'Lot 2',
+                      'lot-a' => 'Lot A',
+                      'lot-b' => 'Lot B',
                       'cruise' => 'Cruise',
                       default => $lot['name'],
                   };
@@ -270,18 +270,18 @@ function render_reservation_form(
         <div class="hero__content">
           <p class="eyebrow">San Diego's Park, Shuttle & Fly</p>
           <h1>Airport Parking for SAN</h1>
-          <p class="hero__lead">Choose Lot 1 or Lot 2 on Pacific Highway and reserve your airport parking minutes from San Diego International Airport.</p>
+          <p class="hero__lead">Choose Lot A or Lot B on Pacific Highway and reserve your airport parking minutes from San Diego International Airport.</p>
           <div class="hero__actions">
             <a class="button" href="#airport-parking">Reserve Airport Parking</a>
           </div>
           <div class="trust-row" aria-label="Highlights">
             <span>Family owned</span>
             <span>Free shuttle</span>
-            <span>Lot 1 & Lot 2</span>
+            <span>Lot A & Lot B</span>
           </div>
         </div>
 
-        <?php render_reservation_form($lots, $times, $now, $recaptchaSiteKey, ['lot-a', 'lot-b'], 'lot-a', '$18.95 daily rate', 'Reserve Lot 1 or Lot 2 now. Payment is not required today.'); ?>
+        <?php render_reservation_form($lots, $times, $now, $recaptchaSiteKey, ['lot-a', 'lot-b'], 'lot-a', '$18.95 daily rate', 'Reserve Lot A or Lot B now. Payment is not required today.'); ?>
       </div>
     </section>
 
@@ -295,12 +295,12 @@ function render_reservation_form(
 
         <div class="lot-grid">
           <article class="lot-card">
-            <h3>Lot 1 - Airport Parking</h3>
+            <h3>Lot A - Airport Parking</h3>
             <p><?= htmlspecialchars($lots['lot-a']['address']) ?></p>
             <a href="#airport-parking">Reserve this lot</a>
           </article>
           <article class="lot-card">
-            <h3>Lot 2 - Airport Parking</h3>
+            <h3>Lot B - Airport Parking</h3>
             <p><?= htmlspecialchars($lots['lot-b']['address']) ?></p>
             <a href="#airport-parking">Reserve this lot</a>
           </article>
