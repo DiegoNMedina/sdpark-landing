@@ -1,10 +1,13 @@
 (function () {
-  const form = document.querySelector('[data-reservation-form]');
+  const forms = Array.from(document.querySelectorAll('[data-reservation-form]'));
 
-  if (!form) {
+  if (!forms.length) {
     return;
   }
 
+  forms.forEach(initReservationForm);
+
+  function initReservationForm(form) {
   const startDate = form.querySelector('[data-start-date]');
   const startTime = form.querySelector('[data-start-time]');
   const endDate = form.querySelector('[data-end-date]');
@@ -397,16 +400,6 @@
       });
   });
 
-  document.querySelectorAll('[data-lot-jump]').forEach(function (link) {
-    link.addEventListener('click', function () {
-      lotSelect.value = link.dataset.lotJump;
-      updateEstimate();
-      updateSummary();
-      syncLotPills();
-      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-  });
-
   lotPills.forEach(function (pill) {
     pill.addEventListener('click', function () {
       lotSelect.value = pill.dataset.lotPill;
@@ -418,4 +411,5 @@
   syncDateRules();
   syncLotPills();
   showStep(0);
+  }
 }());

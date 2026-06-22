@@ -16,6 +16,193 @@ for ($hour = 0; $hour < 24; $hour++) {
         $times[$value] = $label;
     }
 }
+
+function render_reservation_form(
+    array $lots,
+    array $times,
+    DateTimeImmutable $now,
+    string $recaptchaSiteKey,
+    array $lotKeys,
+    string $defaultLot,
+    string $heading,
+    string $subheading
+): void {
+    $availableLots = array_intersect_key($lots, array_flip($lotKeys));
+
+    if (!isset($availableLots[$defaultLot])) {
+        $defaultLot = array_key_first($availableLots);
+    }
+    ?>
+    <aside class="reservation-card" aria-label="<?= htmlspecialchars($heading) ?>">
+      <div class="reservation-card__header">
+        <p class="eyebrow">Lock your rate</p>
+        <h2><?= htmlspecialchars($heading) ?></h2>
+        <p><?= htmlspecialchars($subheading) ?></p>
+      </div>
+
+      <form
+        class="reservation-form"
+        action="/api/create-reservation.php"
+        method="post"
+        data-reservation-form
+        data-current-date="<?= htmlspecialchars($now->format('Y-m-d')) ?>"
+        data-current-time="<?= htmlspecialchars($now->format('H:i')) ?>"
+        data-min-reservation-days="<?= min_reservation_days() ?>"
+        data-recaptcha-site-key="<?= htmlspecialchars($recaptchaSiteKey) ?>"
+        novalidate
+      >
+        <input type="hidden" name="recaptcha_token" value="" data-recaptcha-token>
+        <div class="stepper" aria-label="Reservation steps">
+          <span class="stepper__item is-active" data-step-indicator="0">Trip</span>
+          <span class="stepper__item" data-step-indicator="1">Details</span>
+          <span class="stepper__item" data-step-indicator="2">Review</span>
+        </div>
+
+        <fieldset class="form-step is-active" data-form-step="0">
+          <legend>Trip Details</legend>
+          <div class="form-grid form-grid--two">
+            <label>
+              Drop Off
+              <input type="date" name="dropoff_date" required data-start-date>
+            </label>
+            <label>
+              Drop Off Time
+              <select name="dropoff_time" required data-start-time>
+                <?php foreach ($times as $value => $label): ?>
+                  <option value="<?= htmlspecialchars($value) ?>"><?= htmlspecialchars($label) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </label>
+          </div>
+
+          <div class="form-grid form-grid--two">
+            <label>
+              Pick-Up
+              <input type="date" name="pickup_date" required data-end-date>
+            </label>
+            <label>
+              Pick-Up Time
+              <select name="pickup_time" required data-end-time>
+                <?php foreach ($times as $value => $label): ?>
+                  <option value="<?= htmlspecialchars($value) ?>"><?= htmlspecialchars($label) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </label>
+          </div>
+
+          <p class="step-error" data-step-error="0" aria-live="polite"></p>
+          <button class="button button--full" type="button" data-next-step>Continue</button>
+        </fieldset>
+
+        <fieldset class="form-step" data-form-step="1">
+          <legend>Your Information</legend>
+          <div class="form-grid form-grid--two">
+            <label>
+              First Name
+              <input name="first_name" autocomplete="given-name" required>
+            </label>
+            <label>
+              Last Name
+              <input name="last_name" autocomplete="family-name" required>
+            </label>
+          </div>
+
+          <div class="form-grid form-grid--two">
+            <label>
+              Email
+              <input type="email" name="email" autocomplete="email" required>
+            </label>
+            <label>
+              Phone
+              <input type="tel" name="phone" autocomplete="tel" required>
+            </label>
+          </div>
+
+          <label>
+            How did you hear about us?
+            <select name="source">
+              <option value="">Select one</option>
+              <option>Google</option>
+              <option>Yelp</option>
+              <option>Friend</option>
+              <option>Street Sign</option>
+              <option>Repeat Customer</option>
+            </select>
+          </label>
+
+          <p class="step-error" data-step-error="1" aria-live="polite"></p>
+          <div class="form-actions">
+            <button class="button button--ghost" type="button" data-prev-step>Back</button>
+            <button class="button" type="button" data-next-step>Review</button>
+          </div>
+        </fieldset>
+
+        <fieldset class="form-step" data-form-step="2">
+          <legend>Review & Reserve</legend>
+          <div class="lot-choice" data-lot-choice>
+            <span class="lot-choice__label">Parking Lot</span>
+            <div class="lot-pills" role="radiogroup" aria-label="Parking Lot">
+              <?php foreach ($availableLots as $key => $lot): ?>
+                <?php
+                  $shortName = match ($key) {
+                      'lot-a' => 'Lot 1',
+                      'lot-b' => 'Lot 2',
+                      'cruise' => 'Cruise',
+                      default => $lot['name'],
+                  };
+                ?>
+                <button
+                  class="lot-pill<?= $key === $defaultLot ? ' is-active' : '' ?>"
+                  type="button"
+                  role="radio"
+                  aria-checked="<?= $key === $defaultLot ? 'true' : 'false' ?>"
+                  data-lot-pill="<?= htmlspecialchars($key) ?>"
+                >
+                  <strong><?= htmlspecialchars($shortName) ?></strong>
+                  <span>$<?= number_format($lot['daily_rate_cents'] / 100, 2) ?>/day</span>
+                </button>
+              <?php endforeach; ?>
+            </div>
+            <select class="visually-hidden" name="lot" required data-rate-source aria-hidden="true" tabindex="-1">
+              <?php foreach ($availableLots as $key => $lot): ?>
+                <option value="<?= htmlspecialchars($key) ?>" data-rate="<?= (int) $lot['daily_rate_cents'] ?>"<?= $key === $defaultLot ? ' selected' : '' ?>>
+                  <?= htmlspecialchars($lot['name']) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
+          <div class="reservation-summary">
+            <div>
+              <span>Drop off</span>
+              <strong data-summary-dropoff>--</strong>
+            </div>
+            <div>
+              <span>Pick-up</span>
+              <strong data-summary-pickup>--</strong>
+            </div>
+            <div>
+              <span>Customer</span>
+              <strong data-summary-customer>--</strong>
+            </div>
+          </div>
+
+          <div class="estimate" aria-live="polite">
+            <span>Estimated total</span>
+            <strong data-estimate-total>$18.95</strong>
+          </div>
+
+          <p class="step-error" data-step-error="2" aria-live="polite"></p>
+          <div class="form-actions">
+            <button class="button button--ghost" type="button" data-prev-step>Back</button>
+            <button class="button" type="submit">Complete Reservation</button>
+          </div>
+          <p class="form-note">Free shuttle included. Your confirmation will be sent by email.</p>
+        </fieldset>
+      </form>
+    </aside>
+    <?php
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -47,273 +234,98 @@ for ($hour = 0; $hour < 24; $hour++) {
       </a>
       <div class="nav__links">
         <a href="#rates">Rates</a>
-        <a href="#lots">Lots</a>
-        <a href="#cruise">Cruise</a>
-        <a href="#reserve" class="button button--small">Reserve</a>
+        <a href="#airport-parking">Airport</a>
+        <a href="#cruise-parking">Cruise</a>
+        <a href="#airport-parking" class="button button--small">Reserve</a>
       </div>
     </nav>
   </header>
 
   <main>
-    <section class="hero">
+    <section class="rate-band" id="rates">
+      <div class="container rate-band__grid">
+        <div class="rate-band__content">
+          <p class="promo-badge">Coupon savings</p>
+          <h2>Save $6 every day you park</h2>
+          <p>Reserve with the SD Park coupon rate and keep more money for your trip. Airport and cruise shuttle service is included.</p>
+          <div class="rate-band__actions">
+            <a class="button button--light" href="#airport-parking">Reserve Airport Parking</a>
+            <a class="button button--outline-light" href="#cruise-parking">Reserve Cruise Parking</a>
+          </div>
+        </div>
+        <div class="savings-card" aria-label="Daily coupon savings">
+          <div>
+            <span>Regular</span>
+            <del>$24.95</del>
+          </div>
+          <strong>$18.95</strong>
+          <small>Coupon daily rate</small>
+          <em>$6/day savings</em>
+        </div>
+      </div>
+    </section>
+
+    <section class="hero reservation-section reservation-section--airport" id="airport-parking">
       <div class="container hero__grid">
         <div class="hero__content">
           <p class="eyebrow">San Diego's Park, Shuttle & Fly</p>
-          <h1>Airport Parking in San Diego</h1>
-          <p class="hero__lead">Low-price airport and cruise parking minutes from SAN, with free courtesy shuttle service included with your reservation.</p>
+          <h1>Airport Parking for SAN</h1>
+          <p class="hero__lead">Choose Lot 1 or Lot 2 on Pacific Highway and reserve your airport parking minutes from San Diego International Airport.</p>
           <div class="hero__actions">
-            <a class="button" href="#reserve">Make a Reservation</a>
+            <a class="button" href="#airport-parking">Reserve Airport Parking</a>
           </div>
           <div class="trust-row" aria-label="Highlights">
             <span>Family owned</span>
             <span>Free shuttle</span>
-            <span>Secure lots</span>
+            <span>Lot 1 & Lot 2</span>
           </div>
         </div>
 
-        <aside class="reservation-card" id="reserve" aria-label="Reservation form">
-          <div class="reservation-card__header">
-            <p class="eyebrow">Lock your rate</p>
-            <h2>$18.95 daily rate</h2>
-            <p>Reserve your spot now. Payment is not required today.</p>
-          </div>
-
-          <form
-            class="reservation-form"
-            action="/api/create-reservation.php"
-            method="post"
-            data-reservation-form
-            data-current-date="<?= htmlspecialchars($now->format('Y-m-d')) ?>"
-            data-current-time="<?= htmlspecialchars($now->format('H:i')) ?>"
-            data-min-reservation-days="<?= min_reservation_days() ?>"
-            data-recaptcha-site-key="<?= htmlspecialchars($recaptchaSiteKey) ?>"
-            novalidate
-          >
-            <input type="hidden" name="recaptcha_token" value="" data-recaptcha-token>
-            <div class="stepper" aria-label="Reservation steps">
-              <span class="stepper__item is-active" data-step-indicator="0">Trip</span>
-              <span class="stepper__item" data-step-indicator="1">Details</span>
-              <span class="stepper__item" data-step-indicator="2">Review</span>
-            </div>
-
-            <fieldset class="form-step is-active" data-form-step="0">
-              <legend>Trip Details</legend>
-              <div class="form-grid form-grid--two">
-                <label>
-                  Drop Off
-                  <input type="date" name="dropoff_date" required data-start-date>
-                </label>
-                <label>
-                  Drop Off Time
-                  <select name="dropoff_time" required data-start-time>
-                    <?php foreach ($times as $value => $label): ?>
-                      <option value="<?= htmlspecialchars($value) ?>"><?= htmlspecialchars($label) ?></option>
-                    <?php endforeach; ?>
-                  </select>
-                </label>
-              </div>
-
-              <div class="form-grid form-grid--two">
-                <label>
-                  Pick-Up
-                  <input type="date" name="pickup_date" required data-end-date>
-                </label>
-                <label>
-                  Pick-Up Time
-                  <select name="pickup_time" required data-end-time>
-                    <?php foreach ($times as $value => $label): ?>
-                      <option value="<?= htmlspecialchars($value) ?>"><?= htmlspecialchars($label) ?></option>
-                    <?php endforeach; ?>
-                  </select>
-                </label>
-              </div>
-
-              <p class="step-error" data-step-error="0" aria-live="polite"></p>
-              <button class="button button--full" type="button" data-next-step>Continue</button>
-            </fieldset>
-
-            <fieldset class="form-step" data-form-step="1">
-              <legend>Your Information</legend>
-              <div class="form-grid form-grid--two">
-                <label>
-                  First Name
-                  <input name="first_name" autocomplete="given-name" required>
-                </label>
-                <label>
-                  Last Name
-                  <input name="last_name" autocomplete="family-name" required>
-                </label>
-              </div>
-
-              <div class="form-grid form-grid--two">
-                <label>
-                  Email
-                  <input type="email" name="email" autocomplete="email" required>
-                </label>
-                <label>
-                  Phone
-                  <input type="tel" name="phone" autocomplete="tel" required>
-                </label>
-              </div>
-
-              <label>
-                How did you hear about us?
-                <select name="source">
-                  <option value="">Select one</option>
-                  <option>Google</option>
-                  <option>Yelp</option>
-                  <option>Friend</option>
-                  <option>Street Sign</option>
-                  <option>Repeat Customer</option>
-                </select>
-              </label>
-
-              <p class="step-error" data-step-error="1" aria-live="polite"></p>
-              <div class="form-actions">
-                <button class="button button--ghost" type="button" data-prev-step>Back</button>
-                <button class="button" type="button" data-next-step>Review</button>
-              </div>
-            </fieldset>
-
-            <fieldset class="form-step" data-form-step="2">
-              <legend>Review & Reserve</legend>
-              <div class="lot-choice" data-lot-choice>
-                <span class="lot-choice__label">Parking Lot</span>
-                <div class="lot-pills" role="radiogroup" aria-label="Parking Lot">
-                  <?php foreach ($lots as $key => $lot): ?>
-                    <?php
-                      $shortName = match ($key) {
-                          'lot-a' => 'Lot A',
-                          'lot-b' => 'Lot B',
-                          'cruise' => 'Cruise',
-                          default => $lot['name'],
-                      };
-                    ?>
-                    <button
-                      class="lot-pill<?= $key === 'lot-a' ? ' is-active' : '' ?>"
-                      type="button"
-                      role="radio"
-                      aria-checked="<?= $key === 'lot-a' ? 'true' : 'false' ?>"
-                      data-lot-pill="<?= htmlspecialchars($key) ?>"
-                    >
-                      <strong><?= htmlspecialchars($shortName) ?></strong>
-                      <span>$<?= number_format($lot['daily_rate_cents'] / 100, 2) ?>/day</span>
-                    </button>
-                  <?php endforeach; ?>
-                </div>
-                <select class="visually-hidden" name="lot" required data-rate-source aria-hidden="true" tabindex="-1">
-                  <?php foreach ($lots as $key => $lot): ?>
-                    <option value="<?= htmlspecialchars($key) ?>" data-rate="<?= (int) $lot['daily_rate_cents'] ?>">
-                      <?= htmlspecialchars($lot['name']) ?>
-                    </option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-
-              <div class="reservation-summary">
-                <div>
-                  <span>Drop off</span>
-                  <strong data-summary-dropoff>--</strong>
-                </div>
-                <div>
-                  <span>Pick-up</span>
-                  <strong data-summary-pickup>--</strong>
-                </div>
-                <div>
-                  <span>Customer</span>
-                  <strong data-summary-customer>--</strong>
-                </div>
-              </div>
-
-              <div class="estimate" aria-live="polite">
-                <span>Estimated total</span>
-                <strong data-estimate-total>$18.95</strong>
-              </div>
-
-              <p class="step-error" data-step-error="2" aria-live="polite"></p>
-              <div class="form-actions">
-                <button class="button button--ghost" type="button" data-prev-step>Back</button>
-                <button class="button" type="submit">Complete Reservation</button>
-              </div>
-              <p class="form-note">Free shuttle included. Your confirmation will be sent by email.</p>
-            </fieldset>
-          </form>
-        </aside>
+        <?php render_reservation_form($lots, $times, $now, $recaptchaSiteKey, ['lot-a', 'lot-b'], 'lot-a', '$18.95 daily rate', 'Reserve Lot 1 or Lot 2 now. Payment is not required today.'); ?>
       </div>
     </section>
 
-    <section class="rate-band" id="rates">
-      <div class="container rate-band__grid">
-        <div>
-          <p class="eyebrow">Coupon rate</p>
-          <h2>Save $6/day on airport parking</h2>
-          <p>Use the current SD Park rate and keep your trip simple with a quick shuttle to San Diego International Airport.</p>
-        </div>
-        <div class="rate-card">
-          <span>Regular Rate</span>
-          <del>$24.95</del>
-          <strong>$18.95</strong>
-          <small>Daily rate with coupon</small>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="lots">
+    <section class="lot-divider" id="parking-options">
       <div class="container">
-        <div class="section__header">
+        <div class="lot-divider__header">
           <p class="eyebrow">Choose your lot</p>
           <h2>Convenient parking near SAN</h2>
-          <p>Two San Diego airport parking locations on Pacific Highway, both positioned for fast airport access.</p>
+          <p>Two San Diego airport parking locations on Pacific Highway, plus a cruise parking option for the Port of San Diego.</p>
         </div>
+
         <div class="lot-grid">
-          <?php foreach ($lots as $key => $lot): ?>
-            <article class="lot-card">
-              <h3><?= htmlspecialchars($lot['name']) ?></h3>
-              <p><?= htmlspecialchars($lot['address']) ?></p>
-              <a href="#reserve" data-lot-jump="<?= htmlspecialchars($key) ?>">Reserve this lot</a>
-            </article>
-          <?php endforeach; ?>
+          <article class="lot-card">
+            <h3>Lot 1 - Airport Parking</h3>
+            <p><?= htmlspecialchars($lots['lot-a']['address']) ?></p>
+            <a href="#airport-parking">Reserve this lot</a>
+          </article>
+          <article class="lot-card">
+            <h3>Lot 2 - Airport Parking</h3>
+            <p><?= htmlspecialchars($lots['lot-b']['address']) ?></p>
+            <a href="#airport-parking">Reserve this lot</a>
+          </article>
+          <article class="lot-card">
+            <h3>Cruise Parking</h3>
+            <p><?= htmlspecialchars($lots['cruise']['address']) ?></p>
+            <a href="#cruise-parking">Reserve cruise parking</a>
+          </article>
         </div>
       </div>
     </section>
 
-    <section class="section section--muted">
-      <div class="container feature-grid">
-        <article>
-          <span class="feature-icon">01</span>
-          <h3>Drive in</h3>
-          <p>Arrive at your selected lot and check in for your reservation.</p>
-        </article>
-        <article>
-          <span class="feature-icon">02</span>
-          <h3>Shuttle out</h3>
-          <p>Ride the free courtesy shuttle to the airport or cruise terminal.</p>
-        </article>
-        <article>
-          <span class="feature-icon">03</span>
-          <h3>Return easy</h3>
-          <p>Get picked up after your trip and head straight back to your vehicle.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="section split" id="cruise">
-      <div class="container split__grid">
-        <div>
+    <section class="reservation-section reservation-section--cruise" id="cruise-parking">
+      <div class="container reservation-section__grid reservation-section__grid--reverse">
+        <?php render_reservation_form($lots, $times, $now, $recaptchaSiteKey, ['cruise'], 'cruise', 'Cruise parking reservation', 'Reserve your cruise parking now. Payment is not required today.'); ?>
+        <div class="reservation-section__content">
           <p class="eyebrow">Cruise parking</p>
           <h2>Parking for the Port of San Diego</h2>
-          <p>The Port of San Diego does not operate cruise parking, so SD Park gives travelers a practical option before boarding.</p>
+          <p>Reserve cruise parking before boarding and ride the courtesy shuttle to and from the cruise terminals.</p>
           <ul class="check-list">
             <li>Free shuttle service to and from cruise terminals</li>
             <li>Competitive daily rates</li>
             <li>Secure parking with convenient access</li>
             <li>Regular-size parking spots for standard vehicles</li>
           </ul>
-        </div>
-        <div class="highlight-panel">
-          <h3>Family owned & operated</h3>
-          <p>With 14+ years in airport parking, SD Park focuses on reliable, affordable parking for San Diego travelers.</p>
-          <a class="button button--full" href="#reserve">Reserve Cruise Parking</a>
         </div>
       </div>
     </section>
@@ -327,7 +339,7 @@ for ($hour = 0; $hour < 24; $hour++) {
       </div>
       <div>
         <a href="tel:+16192911234">(619) 291-1234</a>
-        <a href="#reserve">Make a Reservation</a>
+        <a href="#airport-parking">Make a Reservation</a>
       </div>
     </div>
   </footer>
