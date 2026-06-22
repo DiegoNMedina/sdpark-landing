@@ -33,6 +33,8 @@ MAIL_FROM_EMAIL=no-reply@sdparkshuttlefly.com
 ADMIN_EMAIL=reservations@sdparkshuttlefly.com
 RESERVATION_API_ENDPOINT=https://tudominio.com/api/reservation
 RESERVATION_API_KEY=...
+RESERVATION_API_KEY_AIRPORT=...
+RESERVATION_API_KEY_CRUISE=...
 RECAPTCHA_SITE_KEY=...
 RECAPTCHA_SECRET_KEY=...
 RECAPTCHA_MIN_SCORE=0.5
@@ -44,7 +46,7 @@ Reservations submit to:
 /api/create-reservation.php
 ```
 
-The reservation is posted to `RESERVATION_API_ENDPOINT` with the `api-key` header, then confirmation emails are prepared/sent through SendGrid. The current flow does not persist reservations locally; the API is the source of truth.
+The reservation is posted to `RESERVATION_API_ENDPOINT` with the `api-key` header, then confirmation emails are prepared/sent through SendGrid. Airport reservations use `RESERVATION_API_KEY_AIRPORT`; cruise reservations use `RESERVATION_API_KEY_CRUISE`. If a scoped key is missing, the flow falls back to `RESERVATION_API_KEY` for compatibility. The current flow does not persist reservations locally; the API is the source of truth.
 
 Stripe files remain in the project for a future payment phase, but the current flow does not collect payment.
 

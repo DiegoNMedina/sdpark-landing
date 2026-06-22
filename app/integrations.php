@@ -53,6 +53,7 @@ function submit_reservation_to_api(array $payload): array
     $payload = ensure_confirmation_number($payload);
     $apiPayload = future_api_payload($payload);
     $endpoint = config('RESERVATION_API_ENDPOINT', '');
+    $lotKey = (string) ($payload['parking']['lot_key'] ?? 'lot-a');
 
     if ($endpoint === '') {
         return [
@@ -67,7 +68,7 @@ function submit_reservation_to_api(array $payload): array
         'Content-Type: application/json',
         'Accept: application/json',
     ];
-    $token = config('RESERVATION_API_KEY', config('RESERVATION_API_TOKEN', ''));
+    $token = reservation_api_key_for_lot($lotKey);
 
     if ($token !== '') {
         $headers[] = 'api-key: ' . $token;
@@ -94,6 +95,8 @@ function submit_reservation_to_api(array $payload): array
             'created_at' => (new DateTimeImmutable())->format(DateTimeInterface::ATOM),
             'reservation_id' => $payload['reservation_id'],
             'confirmation_number' => $payload['confirmation_number'] ?? null,
+            'parking_lot' => $lotKey,
+            'api_key_scope' => reservation_api_key_scope_for_lot($lotKey),
             'status' => $status,
             'ok' => $ok,
             'error' => $error,
@@ -108,6 +111,33 @@ function submit_reservation_to_api(array $payload): array
         'data' => is_array($decoded) ? $decoded : null,
         'message' => is_array($decoded) ? (string) ($decoded['msg'] ?? $decoded['message'] ?? '') : $error,
     ];
+}
+
+function reservation_api_key_for_lot(string $lotKey): string
+{
+    $scopedKey = config(reservation_api_key_config_name_for_lot($lotKey), '');
+
+    if ($scopedKey !== '') {
+        return $scopedKey;
+    }
+
+    return config('RESERVATION_API_KEY', config('RESERVATION_API_TOKEN', '')) ?? '';
+}
+
+function reservation_api_key_scope_for_lot(string $lotKey): string
+{
+    $configName = reservation_api_key_config_name_for_lot($lotKey);
+
+    if (config($configName, '') !== '') {
+        return $configName;
+    }
+
+    return config('RESERVATION_API_KEY', '') !== '' ? 'RESERVATION_API_KEY' : 'RESERVATION_API_TOKEN';
+}
+
+function reservation_api_key_config_name_for_lot(string $lotKey): string
+{
+    return $lotKey === 'cruise' ? 'RESERVATION_API_KEY_CRUISE' : 'RESERVATION_API_KEY_AIRPORT';
 }
 
 function process_reservation_submission(array $payload): array
