@@ -285,34 +285,6 @@ function render_reservation_form(
       </div>
     </section>
 
-    <section class="lot-divider" id="parking-options">
-      <div class="container">
-        <div class="lot-divider__header">
-          <p class="eyebrow">Choose your lot</p>
-          <h2>Convenient parking near SAN</h2>
-          <p>Two San Diego airport parking locations on Pacific Highway, plus a cruise parking option for the Port of San Diego.</p>
-        </div>
-
-        <div class="lot-grid">
-          <article class="lot-card">
-            <h3>Lot A - Airport Parking</h3>
-            <p><?= htmlspecialchars($lots['lot-a']['address']) ?></p>
-            <a href="#airport-parking">Reserve this lot</a>
-          </article>
-          <article class="lot-card">
-            <h3>Lot B - Airport Parking</h3>
-            <p><?= htmlspecialchars($lots['lot-b']['address']) ?></p>
-            <a href="#airport-parking">Reserve this lot</a>
-          </article>
-          <article class="lot-card">
-            <h3>Cruise Parking</h3>
-            <p><?= htmlspecialchars($lots['cruise']['address']) ?></p>
-            <a href="#cruise-parking">Reserve cruise parking</a>
-          </article>
-        </div>
-      </div>
-    </section>
-
     <section class="reservation-section reservation-section--cruise" id="cruise-parking">
       <div class="container reservation-section__grid reservation-section__grid--reverse">
         <?php render_reservation_form($lots, $times, $now, $recaptchaSiteKey, ['cruise'], 'cruise', 'Cruise parking reservation', 'Reserve your cruise parking now. Payment is not required today.'); ?>
