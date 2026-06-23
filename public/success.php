@@ -120,7 +120,7 @@ $reservation = $payload ? reservation_public_view($payload) : [];
               <dd><?= htmlspecialchars($reservation['days']) ?></dd>
             </div>
             <div>
-              <dt>Daily rate</dt>
+              <dt>Coupon daily rate</dt>
               <dd><?= htmlspecialchars($reservation['daily_rate']) ?></dd>
             </div>
             <div>
@@ -135,6 +135,7 @@ $reservation = $payload ? reservation_public_view($payload) : [];
     <?php if (is_array($processResult)): ?>
       <p class="receipt-note">
         <?= !empty($processResult['emails']['customer']) ? 'A confirmation email has been sent.' : 'A confirmation email will be sent shortly.' ?>
+        Your estimate uses the SD Park coupon daily rate.
       </p>
     <?php endif; ?>
 

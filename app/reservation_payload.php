@@ -170,7 +170,7 @@ function reservation_display_rows(array $payload): array
         'Drop Off' => $payload['parking']['dropoff_date'] . ' ' . $payload['parking']['dropoff_time'],
         'Pick-Up' => $payload['parking']['pickup_date'] . ' ' . $payload['parking']['pickup_time'],
         'Days' => (string) $payload['parking']['days'],
-        'Daily Rate' => money_from_cents((int) $payload['parking']['daily_rate_cents'], (string) $payload['payment']['currency']),
+        'Coupon Daily Rate' => money_from_cents((int) $payload['parking']['daily_rate_cents'], (string) $payload['payment']['currency']),
         'Estimated Total' => money_from_cents((int) $payload['payment']['amount_total_cents'], (string) $payload['payment']['currency']),
         'How Did You Hear About Us?' => $payload['customer']['source'] ?: 'Not provided',
     ];

@@ -28,6 +28,7 @@ Create a local `.env` from `.env.example` and set:
 APP_URL=http://127.0.0.1:8087
 APP_TIMEZONE=America/Los_Angeles
 MIN_RESERVATION_DAYS=1
+COUPON_URL=https://sdparkshuttlefly.com/coupons/
 SENDGRID_API_KEY=SG_...
 MAIL_FROM_EMAIL=no-reply@sdparkshuttlefly.com
 ADMIN_EMAIL=reservations@sdparkshuttlefly.com

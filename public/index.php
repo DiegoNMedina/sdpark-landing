@@ -8,6 +8,7 @@ $lots = parking_lots();
 $times = [];
 $now = new DateTimeImmutable('now', app_timezone());
 $recaptchaSiteKey = config('RECAPTCHA_SITE_KEY', '');
+$couponUrl = config('COUPON_URL', 'https://sdparkshuttlefly.com/coupons/');
 
 for ($hour = 0; $hour < 24; $hour++) {
     foreach ([0, 30] as $minute) {
@@ -224,14 +225,16 @@ function render_reservation_form(
         <span class="topbar__label">Located at:</span>
         <a href="https://goo.gl/maps/" class="topbar__link">Lot A: 3405 Pacific Highway</a>
         <a href="https://goo.gl/maps/" class="topbar__link">Lot B: 3275 Pacific Highway</a>
-        <a href="tel:+16192911234" class="topbar__phone">(619) 291-1234</a>
       </div>
     </div>
 
     <nav class="nav container" aria-label="Main navigation">
-      <a href="/" class="brand" aria-label="SD Park Shuttle & Fly home">
-        <img class="brand__logo" src="/assets/images/logosdpark.png" alt="SD Park Shuttle & Fly Airport Parking">
-      </a>
+      <div class="brand-block">
+        <a href="/" class="brand" aria-label="SD Park Shuttle & Fly home">
+          <img class="brand__logo" src="/assets/images/logosdpark.png" alt="SD Park Shuttle & Fly Airport Parking">
+        </a>
+        <a class="brand__phone" href="tel:+16192911234">(619) 291-1234</a>
+      </div>
       <div class="nav__links">
         <a href="#rates">Rates</a>
         <a href="#airport-parking">Airport</a>
@@ -253,7 +256,7 @@ function render_reservation_form(
             <a class="button button--outline-light" href="#cruise-parking">Reserve Cruise Parking</a>
           </div>
         </div>
-        <div class="savings-card" aria-label="Daily coupon savings">
+        <a class="savings-card" href="<?= htmlspecialchars((string) $couponUrl) ?>" aria-label="View SD Park coupon">
           <div>
             <span>Regular</span>
             <del>$24.95</del>
@@ -261,7 +264,7 @@ function render_reservation_form(
           <strong>$18.95</strong>
           <small>Coupon daily rate</small>
           <em>$6/day savings</em>
-        </div>
+        </a>
       </div>
     </section>
 
@@ -308,10 +311,6 @@ function render_reservation_form(
       <div>
         <strong>SD Park Shuttle & Fly</strong>
         <p>Airport and cruise parking in San Diego.</p>
-      </div>
-      <div>
-        <a href="tel:+16192911234">(619) 291-1234</a>
-        <a href="#airport-parking">Make a Reservation</a>
       </div>
     </div>
   </footer>

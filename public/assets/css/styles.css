@@ -71,8 +71,7 @@ svg {
   padding: 9px 0;
 }
 
-.topbar__link,
-.topbar__phone {
+.topbar__link {
   font-weight: 700;
 }
 
@@ -104,6 +103,13 @@ svg {
   gap: 24px;
 }
 
+.brand-block {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 18px;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
@@ -116,6 +122,13 @@ svg {
   height: auto;
   max-height: 64px;
   object-fit: contain;
+}
+
+.brand__phone {
+  color: var(--red);
+  font-size: 1.05rem;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .nav__links {
@@ -589,6 +602,17 @@ select:focus {
   border-radius: var(--radius);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
   text-align: center;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.savings-card:hover {
+  box-shadow: 0 28px 68px rgba(0, 0, 0, 0.24);
+  transform: translateY(-2px);
+}
+
+.savings-card:focus-visible {
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.46), 0 24px 60px rgba(0, 0, 0, 0.18);
+  outline: none;
 }
 
 .savings-card::before {
@@ -745,8 +769,9 @@ select:focus {
 .footer__grid {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 24px;
+  text-align: center;
 }
 
 .footer p {
@@ -974,12 +999,22 @@ select:focus {
     padding: 14px 0;
   }
 
+  .brand-block {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
   .nav__links a:not(.button) {
     display: none;
   }
 
   .brand__logo {
     width: min(205px, 54vw);
+  }
+
+  .brand__phone {
+    font-size: 0.94rem;
   }
 
   .hero h1 {
