@@ -14,34 +14,24 @@ function sendgrid_is_configured(): bool
 
 function reservation_email_html(array $payload, string $audience): string
 {
-    $rows = reservation_display_rows($payload);
-    $title = $audience === 'admin'
-        ? 'New SD Park reservation'
-        : 'Your SD Park reservation is confirmed';
-    $htmlRows = '';
+    $payload = ensure_confirmation_number($payload);
+    $context = reservation_email_context($payload);
+    $adminIntro = '';
 
-    foreach ($rows as $label => $value) {
-        $htmlRows .= '<tr><th align="left" style="padding:8px;border-bottom:1px solid #eee;color:#555;">'
-            . htmlspecialchars($label)
-            . '</th><td style="padding:8px;border-bottom:1px solid #eee;">'
-            . htmlspecialchars((string) $value)
-            . '</td></tr>';
+    if ($audience === 'admin') {
+        $adminIntro = '<table width="600" cellpadding="0" cellspacing="0" border="0" class="container">'
+            . '<tr><td width="600" class="mobile" align="left" valign="top" style="padding:0 0 18px;">'
+            . '<b>Reservation made on</b> ' . e($context['created_at']) . '<br><br>'
+            . 'Client heard about you from ' . e($context['source'])
+            . '<br><br></td></tr></table>';
     }
 
-    return '<div style="font-family:Arial,sans-serif;color:#232323;line-height:1.5;">'
-        . '<h1 style="color:#d40000;">' . htmlspecialchars($title) . '</h1>'
-        . '<p>Reservation details are below.</p>'
-        . '<table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">'
-        . $htmlRows
-        . '</table>'
-        . '</div>';
+    return reservation_email_template($context, $adminIntro);
 }
 
 function reservation_email_text(array $payload, string $audience): string
 {
-    $title = $audience === 'admin'
-        ? 'New SD Park reservation'
-        : 'Your SD Park reservation is confirmed';
+    $title = reservation_email_subject($payload, $audience);
     $lines = [$title, ''];
 
     foreach (reservation_display_rows($payload) as $label => $value) {
@@ -49,6 +39,176 @@ function reservation_email_text(array $payload, string $audience): string
     }
 
     return implode("\n", $lines);
+}
+
+function reservation_email_subject(array $payload, string $audience): string
+{
+    $payload = ensure_confirmation_number($payload);
+    $context = reservation_email_context($payload);
+
+    if ($audience === 'admin') {
+        $prefix = $context['is_cruise'] ? '[CRUISE PARKING] - ' : '';
+        return $context['customer_name'] . ': ' . $prefix . 'New Reservation Request: '
+            . $context['dropoff_date'] . ' to ' . $context['pickup_date'];
+    }
+
+    return 'Your Reservation Details at SD Park Shuttle and Fly '
+        . ($context['is_cruise'] ? 'Cruise Parking ' : 'Lot A or B ')
+        . $context['first_name'];
+}
+
+function reservation_email_context(array $payload): array
+{
+    $payload = ensure_confirmation_number($payload);
+    $isCruise = ((string) $payload['parking']['lot_key']) === 'cruise';
+    $rate = money_from_cents((int) $payload['parking']['daily_rate_cents'], (string) $payload['payment']['currency']);
+    $total = money_from_cents((int) $payload['payment']['amount_total_cents'], (string) $payload['payment']['currency']);
+    $dropoffDate = email_date((string) $payload['parking']['dropoff_date']);
+    $pickupDate = email_date((string) $payload['parking']['pickup_date']);
+
+    return [
+        'is_cruise' => $isCruise,
+        'title' => $isCruise ? 'SD Park Shuttle and Fly Cruise Parking' : 'SD Park Shuttle and Fly Lot A or B',
+        'headline' => 'NO BARCODE/QR CODE TAKE A TICKET',
+        'created_at' => email_created_at((string) ($payload['created_at'] ?? '')),
+        'first_name' => (string) $payload['customer']['first_name'],
+        'customer_name' => (string) $payload['customer']['full_name'],
+        'customer_email' => (string) $payload['customer']['email'],
+        'customer_phone' => (string) $payload['customer']['phone'],
+        'source' => (string) ($payload['customer']['source'] ?: 'Not provided'),
+        'lot_name' => (string) $payload['parking']['lot_name'],
+        'lot_address' => nl2br(e(email_address_lines((string) $payload['parking']['lot_address']))),
+        'lot_phone' => $isCruise ? '619-291-1234' : email_lot_phone((string) $payload['parking']['lot_key']),
+        'dropoff_date' => $dropoffDate,
+        'dropoff_time' => email_time((string) $payload['parking']['dropoff_time']),
+        'pickup_date' => $pickupDate,
+        'pickup_time' => email_time((string) $payload['parking']['pickup_time']),
+        'days' => (string) $payload['parking']['days'],
+        'rate' => $rate,
+        'total' => $total,
+        'coupon_url' => (string) config('COUPON_URL', 'https://sdparkshuttlefly.com/coupons/'),
+        'reservation_validity' => $isCruise
+            ? 'Your reservation is only valid at Lot A for Cruise Ship Patrons.'
+            : 'A reservation made for a specific parking facility is good for both LOT A and/or LOT B regardless of which property you have chosen in the initial reservation.',
+        'arrival_note' => $isCruise
+            ? 'PLEASE ARRIVE AT OUR FACILITY AT LEAST 1-2 HOURS PRIOR TO YOUR DEPARTURE TIME TO ASSURE YOU ARRIVE AT THE CRUISE PORT WITH AMPLE TIME!'
+            : 'PLEASE ARRIVE AT OUR FACILITY AT LEAST 2-3 HOURS PRIOR TO YOUR DEPARTURE TIME TO ASSURE YOU ARRIVE AT THE AIRPORT WITH AMPLE TIME!',
+        'shuttle_note' => $isCruise
+            ? 'Courtesy Shuttles to and from the Cruise Port run 24 hours a day 7 days a week ON DEMAND ONLY! Once requested can take approximately 30 to 45 minutes on average.'
+            : 'Courtesy Shuttles to and from the airport run 24 hours a day 7 days a week ON DEMAND ONLY! Once requested can take approximately 15 to 25 minutes on average.',
+        'access_fee_label' => $isCruise ? 'Cruise/Port Access Fee' : 'Airport/Port Access Fee',
+    ];
+}
+
+function reservation_email_template(array $context, string $adminIntro): string
+{
+    $suggestion = $context['is_cruise']
+        ? '<table width="600" cellpadding="0" cellspacing="0" border="0" class="container"><tr><td width="600" class="mobile" align="left" valign="top"><p style="color:#ce363f; margin:20px 0;"><b style="color:#ce363f;">SUGGESTION:</b> Due to the overwhelming demand for Cruise ship parking, it is SUGGESTED that parties of 4 or more drop off ALL their family members and luggage at the Cruise Ship Terminal PRIOR to parking.</p></td></tr></table>'
+        : '';
+
+    return '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">'
+        . '<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">'
+        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        . '<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>Email Confirmation</title></head>'
+        . '<body style="margin:0; padding:0; background-color:#ffffff;"><center>'
+        . '<table width="640" cellpadding="0" cellspacing="0" border="0" class="wrapper" bgcolor="#FFFFFF"><tr><td align="center" valign="top">'
+        . $adminIntro
+        . '<table width="600" cellpadding="0" cellspacing="0" border="0" class="container"><tr><td width="600" class="mobile" align="left" valign="top">'
+        . '<h1 style="color:#ce363f;"><b>' . e($context['headline']) . '</b></h1>'
+        . 'Thank you for using our online reservation system. We look forward to serving you! <br />'
+        . '<b>With 13+ years in airport parking, we provide reliable and secure solutions.</b> <br /><hr>'
+        . '</td></tr></table>'
+        . '<table width="600" cellpadding="0" cellspacing="0" border="0" class="container"><tr>'
+        . '<td width="300" class="mobile" align="left" valign="top">'
+        . '<b style="color:#ce363f;">' . e($context['title']) . '</b><br>'
+        . $context['lot_address'] . '<br>Phone: ' . e($context['lot_phone']) . ' <br>'
+        . 'Pricing: <b>' . e($context['rate']) . '/24 hours</b> <br>'
+        . 'Lock $18.95 Rate By Presenting <a href="' . e($context['coupon_url']) . '">Coupon</a> <br>'
+        . '**Restrictions Apply** <br><br><br></td>'
+        . '<td height="10" class="mobileOn">&nbsp;</td>'
+        . '<td width="300" class="mobile" align="left" valign="top">'
+        . '<b>Customer Name:</b> ' . e($context['customer_name']) . '<br>'
+        . '<b>Customer Email:</b> ' . e($context['customer_email']) . '<br>'
+        . '<b>Customer Phone:</b> ' . e($context['customer_phone']) . '<br>'
+        . '<b>Drop Off Information:</b> ' . e($context['dropoff_date'] . ' ' . $context['dropoff_time']) . '<br>'
+        . '<b>Pick Up Information:</b> ' . e($context['pickup_date'] . ' ' . $context['pickup_time'])
+        . '</td></tr></table>'
+        . $suggestion
+        . reservation_email_rate_table($context)
+        . reservation_email_footer($context)
+        . '</td></tr></table></center></body></html>';
+}
+
+function reservation_email_rate_table(array $context): string
+{
+    return '<table width="600" cellpadding="0" cellspacing="0" border="0" class="container table table-bordered">'
+        . '<tr><th style="text-align:left;">Your Parking Estimate</th><th style="text-align:left;">Amount</th></tr>'
+        . '<tr><td>Service Type</td><td></td></tr>'
+        . '<tr><td>Parking - Daily (' . e($context['days']) . ' @ ' . e($context['rate']) . ')</td><td>' . e($context['total']) . '</td></tr>'
+        . '<tr><td>' . e($context['access_fee_label']) . '</td><td>Due at exit if applicable</td></tr>'
+        . '<tr class="table-active"><td><strong>Total Amount</strong><br>'
+        . '<span style="color:#ce363f">(Payment due at Exit - Rate By Presenting Coupon - Regular Rate $24.95)</span>'
+        . '</td><td><strong>' . e($context['total']) . '</strong></td></tr>'
+        . '</table>';
+}
+
+function reservation_email_footer(array $context): string
+{
+    return '<table width="600" cellpadding="0" cellspacing="0" border="0" class="container"><tr>'
+        . '<td width="600" class="mobile" align="left" valign="top">'
+        . '<p><b>Miscellaneous Information:</b><br><b>NOTE: ' . e($context['arrival_note']) . '</b></p>'
+        . '<p>' . e($context['shuttle_note']) . '</p>'
+        . '<p><b>Be advised that Parking is paid at the end of your trip. Please be prepared to pay for parking at the end of your trip.</b></p>'
+        . '<p style="color:#ce363f"><b style="color:#ce363f">' . e($context['reservation_validity']) . '</b></p>'
+        . '<p><b>Hours of Operation:</b><br>Open 24 Hours a Day, 7 Days a Week!</p>'
+        . '<p><b>Modification Policy:</b><br>Need to advise parking facility 24 hours prior to original reservation.</p>'
+        . '<p><b>Refund/Cancellation Policy:</b><br>ALL SALES ARE FINAL! NO REFUNDS! Customer cannot cancel or receive a refund once services have been rendered.</p>'
+        . '<p><b>Driving Directions:</b><br>I-5 Freeway Southbound Exit San Diego Airport/Sassafras Street. Follow signs toward Pacific Highway and the selected SD Park lot.</p>'
+        . '<p>PLEASE DO NOT REPLY TO THIS EMAIL<br>This e-mail serves as your receipt. The original e-mail account is not monitored.</p>'
+        . '<p>Thank You</p>'
+        . '</td></tr></table>';
+}
+
+function email_date(string $date): string
+{
+    $dateTime = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+
+    return $dateTime ? $dateTime->format('m/d/Y') : $date;
+}
+
+function email_time(string $time): string
+{
+    $dateTime = DateTimeImmutable::createFromFormat('!H:i', $time);
+
+    return $dateTime ? $dateTime->format('h:i A') : $time;
+}
+
+function email_address_lines(string $address): string
+{
+    return str_replace(', ', "\n", $address);
+}
+
+function email_lot_phone(string $lotKey): string
+{
+    return $lotKey === 'lot-b' ? '619-297-7275' : '619-291-1234';
+}
+
+function email_created_at(string $createdAt): string
+{
+    if ($createdAt === '') {
+        return (new DateTimeImmutable())->format('m/d/Y h:i A');
+    }
+
+    try {
+        return (new DateTimeImmutable($createdAt))->format('m/d/Y h:i A');
+    } catch (Exception) {
+        return $createdAt;
+    }
+}
+
+function e(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
 function sendgrid_payload(string $toEmail, string $toName, string $subject, string $html, string $text): array
@@ -113,8 +273,8 @@ function send_reservation_emails(array $payload): array
 {
     $payload = ensure_confirmation_number($payload);
     $customerName = $payload['customer']['full_name'];
-    $adminSubject = 'New SD Park parking reservation';
-    $customerSubject = 'Your SD Park parking reservation is confirmed';
+    $adminSubject = reservation_email_subject($payload, 'admin');
+    $customerSubject = reservation_email_subject($payload, 'customer');
     $messages = [
         'admin' => sendgrid_payload(
             (string) config('ADMIN_EMAIL', ''),
