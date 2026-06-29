@@ -68,6 +68,7 @@ function reservation_email_context(array $payload): array
 
     return [
         'is_cruise' => $isCruise,
+        'lot_key' => (string) $payload['parking']['lot_key'],
         'title' => $isCruise ? 'SD Park Shuttle and Fly Cruise Parking' : 'SD Park Shuttle and Fly Lot A or B',
         'headline' => 'NO BARCODE/QR CODE TAKE A TICKET',
         'created_at' => email_created_at((string) ($payload['created_at'] ?? '')),
@@ -154,19 +155,65 @@ function reservation_email_rate_table(array $context): string
 
 function reservation_email_footer(array $context): string
 {
+    $directions = reservation_email_driving_directions($context);
+
     return '<table width="600" cellpadding="0" cellspacing="0" border="0" class="container"><tr>'
         . '<td width="600" class="mobile" align="left" valign="top">'
-        . '<p><b>Miscellaneous Information:</b><br><b>NOTE: ' . e($context['arrival_note']) . '</b></p>'
-        . '<p>' . e($context['shuttle_note']) . '</p>'
+        . '<p><b>Miscellaneous Information:</b><br>' . reservation_email_arrival_note($context) . '</p>'
+        . '<p>' . reservation_email_shuttle_note($context) . '</p>'
         . '<p><b>Be advised that Parking is paid at the end of your trip. Please be prepared to pay for parking at the end of your trip.</b></p>'
         . '<p style="color:#ce363f"><b style="color:#ce363f">' . e($context['reservation_validity']) . '</b></p>'
         . '<p><b>Hours of Operation:</b><br>Open 24 Hours a Day, 7 Days a Week!</p>'
         . '<p><b>Modification Policy:</b><br>Need to advise parking facility 24 hours prior to original reservation.</p>'
         . '<p><b>Refund/Cancellation Policy:</b><br>ALL SALES ARE FINAL! NO REFUNDS! Customer cannot cancel or receive a refund once services have been rendered.</p>'
-        . '<p><b>Driving Directions:</b><br>I-5 Freeway Southbound Exit San Diego Airport/Sassafras Street. Follow signs toward Pacific Highway and the selected SD Park lot.</p>'
-        . '<p>PLEASE DO NOT REPLY TO THIS EMAIL<br>This e-mail serves as your receipt. The original e-mail account is not monitored.</p>'
+        . $directions
+        . '<p>PLEASE DO NOT REPLY TO THIS EMAIL'
+        . '<br>This e-mail serves as your receipt. The original e-mail account is not monitored. This address is automated, unattended, and can not answer your questions or requests.</p>'
         . '<p>Thank You</p>'
         . '</td></tr></table>';
+}
+
+function reservation_email_arrival_note(array $context): string
+{
+    if ($context['is_cruise']) {
+        return '<b>NOTE:</b> PLEASE ARRIVE AT OUR FACILITY AT LEAST 1-2 HOURS PRIOR TO YOUR DEPARTURE TIME TO ASSURE YOU ARRIVE AT THE CRUISE PORT WITH AMPLE TIME!';
+    }
+
+    return '<b>NOTE: PLEASE ARRIVE AT OUR FACILITY AT LEAST 2-3 HOURS PRIOR TO YOUR DEPARTURE TIME TO ASSURE YOU ARRIVE AT THE AIRPORT WITH AMPLE TIME!</b>';
+}
+
+function reservation_email_shuttle_note(array $context): string
+{
+    if ($context['is_cruise']) {
+        return 'Courtesy Shuttles to and from the Cruise Port run 24 hours a day 7 days a week ON DEMAND ONLY! Once requested can take approximately 30 to 45 minutes on average to get picked up due to construction at the Airport. Please call us after you claim your baggage and a courtesy shuttle will be sent for you ON DEMAND.';
+    }
+
+    return '<b>Courtesy Shuttles to and from the airport run 24 hours a day 7 days a week ON DEMAND ONLY! Once requested can take approximately 15 to 25 minutes on average to get picked up due to construction at the Airport. Please call us after you claim your baggage and a courtesy shuttle will be sent for you ON DEMAND.</b>';
+}
+
+function reservation_email_driving_directions(array $context): string
+{
+    if ($context['is_cruise'] || $context['lot_key'] === 'lot-a') {
+        return '<p><b>Driving Directions:</b><br>'
+            . '<b>I-5 Freeway Southbound</b> Exit San Diego Airport/Sassafras Street. Turn right onto Sassafras Street at the first traffic signal light then turn right onto Pacific Highway, once on Pacific Highway our entrance is IMMEDIATELY ON THE LEFT.'
+            . '</p><p>'
+            . '<b>I-5 Freeway Northbound</b> Exit Sassafras/India Street, Turn left onto Sassafras Street at the first traffic signal light then turn right onto Pacific Highway, once on Pacific Highway our entrance is IMMEDIATELY ON THE LEFT.'
+            . '</p><p>'
+            . '<b>From SR 163 South</b> take I-5 North/ San Diego Freeway toward Los Angeles. Exit Sassafras/India Street, Turn left onto Sassafras Street at the first traffic signal light then turn right onto Pacific Highway, once on Pacific Highway our entrance is IMMEDIATELY ON THE LEFT.'
+            . '</p><p>'
+            . '<b>I-8 Freeway Westbound</b> Take ramp right for I-5 South/San Diego Freeway. Exit San Diego Airport/ Sassafras Street, Turn right onto Sassafras Street at the first traffic signal light then turn right onto Pacific Highway, once on Pacific Highway our entrance is IMMEDIATELY ON THE LEFT.'
+            . '</p>';
+    }
+
+    return '<p><b>Driving Directions:</b><br>'
+        . '<b>I-5 Freeway Southbound Exit San Diego Airport/Sassafras Street.</b> Turn right onto Sassafras Street at the first traffic signal light then cross the train tracks and our entrance is IMMEDIATELY ON THE RIGHT before Pacific Highway.'
+        . '</p><p>'
+        . '<b>I-5 Freeway Northbound</b> - Exit Sassafras/India Street, Turn left onto Sassafras Street at the first traffic signal light then cross the train tracks and our entrance is IMMEDIATELY ON THE RIGHT before Pacific Highway.'
+        . '</p><p>'
+        . '<b>From SR 163 South - take I-5 North/ San Diego Freeway toward Los Angeles.</b> Exit Sassafras/India Street, Turn left onto Sassafras Street at the first traffic signal light then cross the train tracks and our entrance is IMMEDIATELY ON THE RIGHT before Pacific Highway.'
+        . '</p><p>'
+        . '<b>I-8 Freeway Westbound - Take ramp for I-5 South/San Diego Freeway. </b> Exit San Diego Airport/ Sassafras Street, Turn right onto Sassafras Street at the first traffic signal light then cross the train tracks and our entrance is IMMEDIATELY ON THE RIGHT before Pacific Highway.'
+        . '</p>';
 }
 
 function email_date(string $date): string
