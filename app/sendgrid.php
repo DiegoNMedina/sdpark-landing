@@ -248,7 +248,7 @@ function email_created_at(string $createdAt): string
 
     try {
         return (new DateTimeImmutable($createdAt))->format('m/d/Y h:i A');
-    } catch (Exception) {
+    } catch (Exception $exception) {
         return $createdAt;
     }
 }

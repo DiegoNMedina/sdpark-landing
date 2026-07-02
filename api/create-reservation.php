@@ -51,6 +51,7 @@ try {
         'process_result' => [
             'api_reservation_id' => $processResult['api_reservation_id'],
             'emails' => $processResult['emails'],
+            'constant_contact' => $processResult['constant_contact'],
         ],
     ];
 
@@ -66,7 +67,7 @@ try {
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>Reservation Error | SD Park Shuttle & Fly</title>
-      <link rel="stylesheet" href="/assets/css/styles.css">
+      <link rel="stylesheet" href="<?= htmlspecialchars(app_url('/assets/css/styles.css')) ?>">
     </head>
     <body class="simple-page">
       <main class="confirmation">
@@ -74,7 +75,7 @@ try {
         <h1>We could not complete your reservation.</h1>
         <p>Please try again or call SD Park Shuttle & Fly for assistance.</p>
         <p class="confirmation__meta"><?= htmlspecialchars($exception->getMessage()) ?></p>
-        <a class="button" href="/">Back to landing page</a>
+        <a class="button" href="<?= htmlspecialchars(app_url('/')) ?>">Back to landing page</a>
       </main>
     </body>
     </html>

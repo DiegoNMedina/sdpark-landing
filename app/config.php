@@ -40,3 +40,15 @@ function min_reservation_days(): int
 {
     return max(1, (int) config('MIN_RESERVATION_DAYS', '1'));
 }
+
+function render_tracking_snippet(string $filename): void
+{
+    $path = dirname(__DIR__) . '/GA/' . basename($filename);
+
+    if (!is_file($path)) {
+        return;
+    }
+
+    readfile($path);
+    echo "\n";
+}

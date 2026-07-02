@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/constant_contact.php';
 require_once __DIR__ . '/reservation_payload.php';
 require_once __DIR__ . '/sendgrid.php';
 
@@ -26,12 +27,15 @@ function future_api_payload(array $payload): array
 
 function api_parking_lot_value(string $lotKey): int
 {
-    return match ($lotKey) {
-        'lot-a' => 1,
-        'lot-b' => 2,
-        'cruise' => 3,
-        default => 1,
-    };
+    switch ($lotKey) {
+        case 'lot-b':
+            return 2;
+        case 'cruise':
+            return 3;
+        case 'lot-a':
+        default:
+            return 1;
+    }
 }
 
 function api_time_value(string $time): string
@@ -161,6 +165,7 @@ function process_reservation_submission(array $payload): array
         'confirmation_number' => $payload['confirmation_number'],
         'api_reservation_id' => $apiReservationId,
         'emails' => send_reservation_emails($payload),
+        'constant_contact' => constant_contact_sync_reservation($payload),
         'api' => $apiResult,
         'payload' => $payload,
     ];
@@ -184,6 +189,7 @@ function process_completed_reservation(array $payload): array
         'confirmation_number' => $payload['confirmation_number'],
         'checkout_session_id' => $sessionId,
         'emails' => send_reservation_emails($payload),
+        'constant_contact' => constant_contact_sync_reservation($payload),
         'future_api' => push_reservation_to_future_api($payload),
     ];
 

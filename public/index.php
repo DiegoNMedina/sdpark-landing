@@ -43,7 +43,7 @@ function render_reservation_form(
 
       <form
         class="reservation-form"
-        action="/api/create-reservation.php"
+        action="<?= htmlspecialchars(app_url('/api/create-reservation.php')) ?>"
         method="post"
         data-reservation-form
         data-current-date="<?= htmlspecialchars($now->format('Y-m-d')) ?>"
@@ -145,12 +145,20 @@ function render_reservation_form(
             <div class="lot-pills" role="radiogroup" aria-label="Parking Lot">
               <?php foreach ($availableLots as $key => $lot): ?>
                 <?php
-                  $shortName = match ($key) {
-                      'lot-a' => 'Lot A',
-                      'lot-b' => 'Lot B',
-                      'cruise' => 'Cruise',
-                      default => $lot['name'],
-                  };
+                  switch ($key) {
+                      case 'lot-a':
+                          $shortName = 'Lot A';
+                          break;
+                      case 'lot-b':
+                          $shortName = 'Lot B';
+                          break;
+                      case 'cruise':
+                          $shortName = 'Cruise';
+                          break;
+                      default:
+                          $shortName = $lot['name'];
+                          break;
+                  }
                 ?>
                 <button
                   class="lot-pill<?= $key === $defaultLot ? ' is-active' : '' ?>"
@@ -215,10 +223,12 @@ function render_reservation_form(
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="icon" href="<?= htmlspecialchars(app_url('/favicon.svg')) ?>" type="image/svg+xml">
+  <link rel="stylesheet" href="<?= htmlspecialchars(app_url('/assets/css/styles.css')) ?>">
+  <?php render_tracking_snippet('header.txt'); ?>
 </head>
 <body>
+  <?php render_tracking_snippet('body.txt'); ?>
   <header class="site-header">
     <div class="topbar">
       <div class="container topbar__inner">
@@ -230,8 +240,8 @@ function render_reservation_form(
 
     <nav class="nav container" aria-label="Main navigation">
       <div class="brand-block">
-        <a href="/" class="brand" aria-label="SD Park Shuttle & Fly home">
-          <img class="brand__logo" src="/assets/images/logosdpark.png" alt="SD Park Shuttle & Fly Airport Parking">
+        <a href="<?= htmlspecialchars(app_url('/')) ?>" class="brand" aria-label="SD Park Shuttle & Fly home">
+          <img class="brand__logo" src="<?= htmlspecialchars(app_url('/assets/images/logosdpark.png')) ?>" alt="SD Park Shuttle & Fly Airport Parking">
         </a>
         <a class="brand__phone" href="tel:+16192911234">(619) 291-1234</a>
       </div>
@@ -318,6 +328,7 @@ function render_reservation_form(
   <?php if ($recaptchaSiteKey !== ''): ?>
     <script src="https://www.google.com/recaptcha/api.js?render=<?= urlencode($recaptchaSiteKey) ?>" defer></script>
   <?php endif; ?>
-  <script src="/assets/js/app.js" defer></script>
+  <script src="<?= htmlspecialchars(app_url('/assets/js/app.js')) ?>" defer></script>
+  <?php render_tracking_snippet('footer.txt'); ?>
 </body>
 </html>

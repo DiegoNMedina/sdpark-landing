@@ -36,10 +36,12 @@ $reservation = $payload ? reservation_public_view($payload) : [];
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Reservation Confirmed | SD Park Shuttle & Fly</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="icon" href="<?= htmlspecialchars(app_url('/favicon.svg')) ?>" type="image/svg+xml">
+  <link rel="stylesheet" href="<?= htmlspecialchars(app_url('/assets/css/styles.css')) ?>">
+  <?php render_tracking_snippet('header.txt'); ?>
 </head>
 <body class="simple-page">
+  <?php render_tracking_snippet('body.txt'); ?>
   <main class="confirmation confirmation--wide confirmation--receipt">
     <div class="confirmation-hero">
       <span class="confirmation-hero__mark" aria-hidden="true">✓</span>
@@ -140,9 +142,10 @@ $reservation = $payload ? reservation_public_view($payload) : [];
     <?php endif; ?>
 
     <div class="receipt-actions">
-      <a class="button" href="/">Back to home</a>
+      <a class="button" href="<?= htmlspecialchars(app_url('/')) ?>">Back to home</a>
       <a class="button button--ghost" href="tel:+16192911234">Call SD Park</a>
     </div>
   </main>
+  <?php render_tracking_snippet('footer.txt'); ?>
 </body>
 </html>

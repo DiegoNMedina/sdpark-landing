@@ -1,0 +1,26 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Never expose environment, dependency, storage, source, or template files.
+  RewriteRule ^\.env - [F,L]
+  RewriteRule ^(app|storage|vendor)(/|$) - [F,L]
+  RewriteRule ^(composer\.(json|lock)|README\.md|\.gitignore)$ - [F,L]
+  RewriteRule ^\.git(/|$) - [F,L]
+
+  # Route public API endpoints when the domain points to the project root.
+  RewriteRule ^api/(.*)$ public/api/$1 [L]
+
+  # Route public assets and pages when the domain points to the project root.
+  RewriteRule ^public/ - [L]
+  RewriteRule ^$ public/index.php [L]
+  RewriteRule ^(.+)$ public/$1 [L]
+</IfModule>
+
+<FilesMatch "(^\.|\.env|composer\.(json|lock)|README\.md|\.gitignore)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Deny from all
+  </IfModule>
+</FilesMatch>

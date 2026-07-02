@@ -1,0 +1,17 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Block hidden files and sensitive artifacts inside the public document root.
+  RewriteRule ^\.env - [F,L]
+  RewriteRule ^\.git(/|$) - [F,L]
+  RewriteRule ^(composer\.(json|lock)|README\.md|\.gitignore)$ - [F,L]
+</IfModule>
+
+<FilesMatch "(^\.|\.env|composer\.(json|lock)|README\.md|\.gitignore|.*\.(log|sql|bak|backup|old|swp))$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Deny from all
+  </IfModule>
+</FilesMatch>
