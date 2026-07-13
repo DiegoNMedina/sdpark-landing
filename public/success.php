@@ -8,6 +8,7 @@ $confirmation = (string) ($_GET['confirmation'] ?? '');
 $payload = null;
 $processResult = null;
 $error = '';
+$couponUrl = config('COUPON_URL', 'https://sdparkshuttlefly.com/coupons/');
 
 if ($confirmation !== '') {
     if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -142,6 +143,7 @@ $reservation = $payload ? reservation_public_view($payload) : [];
     <?php endif; ?>
 
     <div class="receipt-actions">
+      <a class="button" href="<?= htmlspecialchars((string) $couponUrl) ?>">Get Coupon</a>
       <a class="button" href="<?= htmlspecialchars(app_url('/')) ?>">Back to home</a>
       <a class="button button--ghost" href="tel:+16192911234">Call SD Park</a>
     </div>
