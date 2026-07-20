@@ -49,6 +49,7 @@ function render_reservation_form(
         data-current-date="<?= htmlspecialchars($now->format('Y-m-d')) ?>"
         data-current-time="<?= htmlspecialchars($now->format('H:i')) ?>"
         data-min-reservation-days="<?= min_reservation_days() ?>"
+        data-access-fee-cents="<?= access_fee_cents() ?>"
         data-recaptcha-site-key="<?= htmlspecialchars($recaptchaSiteKey) ?>"
         novalidate
       >
@@ -199,6 +200,7 @@ function render_reservation_form(
           <div class="estimate" aria-live="polite">
             <span>Estimated total</span>
             <strong data-estimate-total>$18.95</strong>
+            <small>Includes access fee</small>
           </div>
 
           <p class="step-error" data-step-error="2" aria-live="polite"></p>

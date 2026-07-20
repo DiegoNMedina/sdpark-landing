@@ -26,6 +26,7 @@
   const currentDateValue = form.dataset.currentDate;
   const currentTimeValue = form.dataset.currentTime;
   const minReservationDays = Math.max(1, Number(form.dataset.minReservationDays || 1));
+  const accessFeeCents = Math.max(0, Number(form.dataset.accessFeeCents || 0));
   const recaptchaSiteKey = form.dataset.recaptchaSiteKey || '';
   const currency = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -204,7 +205,7 @@
       days = reservationDays(start, end);
     }
 
-    estimateTotal.textContent = currency.format((selectedRateCents() * days) / 100);
+    estimateTotal.textContent = currency.format(((selectedRateCents() * days) + accessFeeCents) / 100);
   }
 
   function syncLotPills() {

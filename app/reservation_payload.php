@@ -39,7 +39,9 @@ function reservation_payload_from_form(array $reservation, string $reservationId
     $lots = parking_lots();
     $lot = $lots[$reservation['lot']] ?? $lots['lot-a'];
     $days = reservation_days($reservation);
-    $totalCents = reservation_total_cents($reservation);
+    $parkingSubtotalCents = reservation_total_cents($reservation);
+    $accessFeeCents = access_fee_cents();
+    $totalCents = $parkingSubtotalCents + $accessFeeCents;
 
     return [
         'reservation_id' => $reservationId,
@@ -68,6 +70,8 @@ function reservation_payload_from_form(array $reservation, string $reservationId
         'payment' => [
             'provider' => 'none',
             'currency' => config('STRIPE_CURRENCY', 'usd'),
+            'parking_subtotal_cents' => $parkingSubtotalCents,
+            'access_fee_cents' => $accessFeeCents,
             'amount_total_cents' => $totalCents,
             'checkout_session_id' => null,
             'payment_status' => 'not_required',
@@ -155,9 +159,52 @@ function money_from_cents(int $cents, string $currency = 'usd'): string
     return strtoupper($currency) . ' $' . number_format($cents / 100, 2);
 }
 
+function reservation_is_cruise(array $payload): bool
+{
+    return ((string) ($payload['parking']['lot_key'] ?? '')) === 'cruise';
+}
+
+function reservation_access_fee_label(array $payload): string
+{
+    return reservation_is_cruise($payload) ? 'Cruise/Port Access Fee' : 'Airport/Port Access Fee';
+}
+
+function reservation_access_fee_cents_from_payload(array $payload): int
+{
+    if (isset($payload['payment']['access_fee_cents'])) {
+        return max(0, (int) $payload['payment']['access_fee_cents']);
+    }
+
+    return access_fee_cents();
+}
+
+function reservation_parking_subtotal_cents_from_payload(array $payload): int
+{
+    if (isset($payload['payment']['parking_subtotal_cents'])) {
+        return max(0, (int) $payload['payment']['parking_subtotal_cents']);
+    }
+
+    $days = max(1, (int) ($payload['parking']['days'] ?? 1));
+    $rate = max(0, (int) ($payload['parking']['daily_rate_cents'] ?? 0));
+
+    return $days * $rate;
+}
+
+function reservation_total_cents_from_payload(array $payload): int
+{
+    if (isset($payload['payment']['amount_total_cents'])) {
+        return max(0, (int) $payload['payment']['amount_total_cents']);
+    }
+
+    return reservation_parking_subtotal_cents_from_payload($payload)
+        + reservation_access_fee_cents_from_payload($payload);
+}
+
 function reservation_display_rows(array $payload): array
 {
     $payload = ensure_confirmation_number($payload);
+    $currency = (string) $payload['payment']['currency'];
+    $accessFeeLabel = reservation_access_fee_label($payload);
 
     return [
         'Confirmation #' => $payload['confirmation_number'],
@@ -170,8 +217,10 @@ function reservation_display_rows(array $payload): array
         'Drop Off' => $payload['parking']['dropoff_date'] . ' ' . $payload['parking']['dropoff_time'],
         'Pick-Up' => $payload['parking']['pickup_date'] . ' ' . $payload['parking']['pickup_time'],
         'Days' => (string) $payload['parking']['days'],
-        'Coupon Daily Rate' => money_from_cents((int) $payload['parking']['daily_rate_cents'], (string) $payload['payment']['currency']),
-        'Estimated Total' => money_from_cents((int) $payload['payment']['amount_total_cents'], (string) $payload['payment']['currency']),
+        'Coupon Daily Rate' => money_from_cents((int) $payload['parking']['daily_rate_cents'], $currency),
+        'Parking Subtotal' => money_from_cents(reservation_parking_subtotal_cents_from_payload($payload), $currency),
+        $accessFeeLabel => money_from_cents(reservation_access_fee_cents_from_payload($payload), $currency),
+        'Estimated Total' => money_from_cents(reservation_total_cents_from_payload($payload), $currency),
         'How Did You Hear About Us?' => $payload['customer']['source'] ?: 'Not provided',
     ];
 }
@@ -179,6 +228,7 @@ function reservation_display_rows(array $payload): array
 function reservation_public_view(array $payload): array
 {
     $payload = ensure_confirmation_number($payload);
+    $currency = (string) $payload['payment']['currency'];
 
     return [
         'confirmation_number' => $payload['confirmation_number'],
@@ -191,8 +241,11 @@ function reservation_public_view(array $payload): array
         'dropoff' => $payload['parking']['dropoff_date'] . ' at ' . $payload['parking']['dropoff_time'],
         'pickup' => $payload['parking']['pickup_date'] . ' at ' . $payload['parking']['pickup_time'],
         'days' => (string) $payload['parking']['days'],
-        'daily_rate' => money_from_cents((int) $payload['parking']['daily_rate_cents'], (string) $payload['payment']['currency']),
-        'estimated_total' => money_from_cents((int) $payload['payment']['amount_total_cents'], (string) $payload['payment']['currency']),
+        'daily_rate' => money_from_cents((int) $payload['parking']['daily_rate_cents'], $currency),
+        'parking_subtotal' => money_from_cents(reservation_parking_subtotal_cents_from_payload($payload), $currency),
+        'access_fee_label' => reservation_access_fee_label($payload),
+        'access_fee' => money_from_cents(reservation_access_fee_cents_from_payload($payload), $currency),
+        'estimated_total' => money_from_cents(reservation_total_cents_from_payload($payload), $currency),
         'source' => $payload['customer']['source'] ?: 'Not provided',
     ];
 }

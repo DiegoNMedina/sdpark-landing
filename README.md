@@ -28,6 +28,7 @@ Create a local `.env` from `.env.example` and set:
 APP_URL=https://sdparkshuttlefly.com/make-a-reservation
 APP_TIMEZONE=America/Los_Angeles
 MIN_RESERVATION_DAYS=1
+ACCESS_FEE_CENTS=475
 COUPON_URL=https://sdparkshuttlefly.com/coupons/
 SENDGRID_API_KEY=SG_...
 MAIL_FROM_EMAIL=no-reply@sdparkshuttlefly.com
@@ -65,7 +66,7 @@ Reservations submit to:
 /api/create-reservation.php
 ```
 
-The reservation is posted to `RESERVATION_API_ENDPOINT` with the `api-key` header, then confirmation emails are prepared/sent through SendGrid. Airport reservations use `RESERVATION_API_KEY_AIRPORT`; cruise reservations use `RESERVATION_API_KEY_CRUISE`. If a scoped key is missing, the flow falls back to `RESERVATION_API_KEY` for compatibility. The current flow does not persist reservations locally; the API is the source of truth.
+The reservation is posted to `RESERVATION_API_ENDPOINT` with the `api-key` header, then confirmation emails are prepared/sent through SendGrid. Airport reservations use `RESERVATION_API_KEY_AIRPORT`; cruise reservations use `RESERVATION_API_KEY_CRUISE`. If a scoped key is missing, the flow falls back to `RESERVATION_API_KEY` for compatibility. The estimated total uses the coupon daily rate plus `ACCESS_FEE_CENTS`. The current flow does not persist reservations locally; the API is the source of truth.
 
 If Constant Contact is configured, successful reservations are also sent to `POST /v3/contacts/sign_up_form`. Lot A/B reservations make one contact insert into `CONSTANT_CONTACT_GENERAL_LIST_ID`; cruise reservations make two contact inserts, one into `CONSTANT_CONTACT_GENERAL_LIST_ID` and another into `CONSTANT_CONTACT_CRUISE_LIST_ID`. The access token is refreshed first when refresh credentials are configured.
 

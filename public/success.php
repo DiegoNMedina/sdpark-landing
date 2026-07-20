@@ -127,6 +127,14 @@ $reservation = $payload ? reservation_public_view($payload) : [];
               <dd><?= htmlspecialchars($reservation['daily_rate']) ?></dd>
             </div>
             <div>
+              <dt>Parking subtotal</dt>
+              <dd><?= htmlspecialchars($reservation['parking_subtotal']) ?></dd>
+            </div>
+            <div>
+              <dt><?= htmlspecialchars($reservation['access_fee_label']) ?></dt>
+              <dd><?= htmlspecialchars($reservation['access_fee']) ?></dd>
+            </div>
+            <div>
               <dt>Estimated total</dt>
               <dd><?= htmlspecialchars($reservation['estimated_total']) ?></dd>
             </div>
@@ -138,7 +146,7 @@ $reservation = $payload ? reservation_public_view($payload) : [];
     <?php if (is_array($processResult)): ?>
       <p class="receipt-note">
         <?= !empty($processResult['emails']['customer']) ? 'A confirmation email has been sent.' : 'A confirmation email will be sent shortly.' ?>
-        Your estimate uses the SD Park coupon daily rate.
+        Your estimate uses the SD Park coupon daily rate and includes the access fee.
       </p>
     <?php endif; ?>
 

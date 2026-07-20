@@ -410,11 +410,20 @@ select:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2px 12px;
   padding: 14px 16px;
   background: var(--cream);
   border: 1px solid #f1d38c;
   border-radius: var(--radius);
   font-weight: 800;
+}
+
+.estimate small {
+  flex: 1 0 100%;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .estimate strong {

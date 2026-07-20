@@ -41,6 +41,11 @@ function min_reservation_days(): int
     return max(1, (int) config('MIN_RESERVATION_DAYS', '1'));
 }
 
+function access_fee_cents(): int
+{
+    return max(0, (int) config('ACCESS_FEE_CENTS', '475'));
+}
+
 function render_tracking_snippet(string $filename): void
 {
     $path = dirname(__DIR__) . '/GA/' . basename($filename);

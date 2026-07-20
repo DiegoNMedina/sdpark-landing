@@ -60,9 +60,11 @@ function reservation_email_subject(array $payload, string $audience): string
 function reservation_email_context(array $payload): array
 {
     $payload = ensure_confirmation_number($payload);
-    $isCruise = ((string) $payload['parking']['lot_key']) === 'cruise';
+    $isCruise = reservation_is_cruise($payload);
     $rate = money_from_cents((int) $payload['parking']['daily_rate_cents'], (string) $payload['payment']['currency']);
-    $total = money_from_cents((int) $payload['payment']['amount_total_cents'], (string) $payload['payment']['currency']);
+    $parkingSubtotal = money_from_cents(reservation_parking_subtotal_cents_from_payload($payload), (string) $payload['payment']['currency']);
+    $accessFee = money_from_cents(reservation_access_fee_cents_from_payload($payload), (string) $payload['payment']['currency']);
+    $total = money_from_cents(reservation_total_cents_from_payload($payload), (string) $payload['payment']['currency']);
     $dropoffDate = email_date((string) $payload['parking']['dropoff_date']);
     $pickupDate = email_date((string) $payload['parking']['pickup_date']);
 
@@ -86,6 +88,8 @@ function reservation_email_context(array $payload): array
         'pickup_time' => email_time((string) $payload['parking']['pickup_time']),
         'days' => (string) $payload['parking']['days'],
         'rate' => $rate,
+        'parking_subtotal' => $parkingSubtotal,
+        'access_fee' => $accessFee,
         'total' => $total,
         'coupon_url' => (string) config('COUPON_URL', 'https://sdparkshuttlefly.com/coupons/'),
         'reservation_validity' => $isCruise
@@ -97,7 +101,7 @@ function reservation_email_context(array $payload): array
         'shuttle_note' => $isCruise
             ? 'Courtesy Shuttles to and from the Cruise Port run 24 hours a day 7 days a week ON DEMAND ONLY! Once requested can take approximately 30 to 45 minutes on average.'
             : 'Courtesy Shuttles to and from the airport run 24 hours a day 7 days a week ON DEMAND ONLY! Once requested can take approximately 15 to 25 minutes on average.',
-        'access_fee_label' => $isCruise ? 'Cruise/Port Access Fee' : 'Airport/Port Access Fee',
+        'access_fee_label' => reservation_access_fee_label($payload),
     ];
 }
 
@@ -145,8 +149,8 @@ function reservation_email_rate_table(array $context): string
     return '<table width="600" cellpadding="0" cellspacing="0" border="0" class="container table table-bordered">'
         . '<tr><th style="text-align:left;">Your Parking Estimate</th><th style="text-align:left;">Amount</th></tr>'
         . '<tr><td>Service Type</td><td></td></tr>'
-        . '<tr><td>Parking - Daily (' . e($context['days']) . ' @ ' . e($context['rate']) . ')</td><td>' . e($context['total']) . '</td></tr>'
-        . '<tr><td>' . e($context['access_fee_label']) . '</td><td>Due at exit if applicable</td></tr>'
+        . '<tr><td>Parking - Daily (' . e($context['days']) . ' @ ' . e($context['rate']) . ')</td><td>' . e($context['parking_subtotal']) . '</td></tr>'
+        . '<tr><td>' . e($context['access_fee_label']) . '</td><td>' . e($context['access_fee']) . '</td></tr>'
         . '<tr class="table-active"><td><strong>Total Amount</strong><br>'
         . '<span style="color:#ce363f">(Payment due at Exit - Rate By Presenting Coupon - Regular Rate $24.95)</span>'
         . '</td><td><strong>' . e($context['total']) . '</strong></td></tr>'
