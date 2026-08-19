@@ -251,6 +251,7 @@ function render_reservation_form(
         <a href="#rates">Rates</a>
         <a href="#airport-parking">Airport</a>
         <a href="#cruise-parking">Cruise</a>
+        <a href="<?= htmlspecialchars((string) $couponUrl) ?>" class="nav__coupon">Coupon</a>
         <a href="#airport-parking" class="button button--small">Reserve</a>
       </div>
     </nav>
@@ -268,7 +269,7 @@ function render_reservation_form(
             <a class="button button--outline-light" href="#cruise-parking">Reserve Cruise Parking</a>
           </div>
         </div>
-        <a class="savings-card" href="<?= htmlspecialchars((string) $couponUrl) ?>" aria-label="View SD Park coupon">
+        <a class="savings-card" href="<?= htmlspecialchars((string) $couponUrl) ?>" aria-label="Click here for SD Park coupon">
           <div>
             <span>Regular</span>
             <del>$24.95</del>
