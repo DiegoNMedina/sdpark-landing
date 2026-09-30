@@ -121,7 +121,7 @@ function reservation_email_template(array $context, string $adminIntro): string
         . '<table width="600" cellpadding="0" cellspacing="0" border="0" class="container"><tr><td width="600" class="mobile" align="left" valign="top">'
         . '<h1 style="color:#ce363f;"><b>' . e($context['headline']) . '</b></h1>'
         . 'Thank you for using our online reservation system. We look forward to serving you! <br />'
-        . '<b>With 13+ years in airport parking, we provide reliable and secure solutions.</b> <br /><hr>'
+        . '<b>With 15+ years in airport parking, we provide reliable and secure solutions.</b> <br /><hr>'
         . '</td></tr></table>'
         . '<table width="600" cellpadding="0" cellspacing="0" border="0" class="container"><tr>'
         . '<td width="300" class="mobile" align="left" valign="top">'
