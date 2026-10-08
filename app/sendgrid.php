@@ -96,9 +96,11 @@ function reservation_email_context(array $payload): array
             ? 'Your reservation is only valid at Lot A for Cruise Ship Patrons.'
             : 'A reservation made for a specific parking facility is good for both LOT A and/or LOT B regardless of which property you have chosen in the initial reservation.',
         'arrival_note' => $isCruise
-            ? 'PLEASE ARRIVE AT OUR FACILITY AT LEAST 1-2 HOURS PRIOR TO YOUR DEPARTURE TIME TO ASSURE YOU ARRIVE AT THE CRUISE PORT WITH AMPLE TIME!'
+            ? 'PLEASE ARRIVE AT OUR FACILITY AT LEAST 1-2 HOURS PRIOR TO YOUR DEPARTURE TIME TO ENSURE YOU ARRIVE AT THE CRUISE PORT WITH AMPLE TIME!'
             : 'PLEASE ARRIVE AT OUR FACILITY AT LEAST 2-3 HOURS PRIOR TO YOUR DEPARTURE TIME TO ASSURE YOU ARRIVE AT THE AIRPORT WITH AMPLE TIME!',
-        'shuttle_note' => 'Welcome Patrons Your Parking fee covers vehicle storage ONLY. To make your travels easier, our complimentary shuttle is a FREE, OPTIONAL service provided for your convenience. Courtesy Shuttles to and from the airport run 24 hours a day, 7 days a week, ON DEMAND ONLY. As the shuttle is a complimentary amenity, guests who elect to use alternative transportation services (such as Uber, Lyft, or taxis) do so at their own discretion and convenience. Any associated costs are the responsibility of the guest and will not be covered, credited, or reimbursed by management. Thank you for your understanding.',
+        'shuttle_note' => $isCruise
+            ? 'Welcome Patrons Your Parking fee covers vehicle storage ONLY. To make your travels easier, our complimentary shuttle is a FREE, OPTIONAL service provided for your convenience. Courtesy Shuttles to and from the Cruise Ship Terminal run 24 hours a day, 7 days a week, ON DEMAND ONLY. As the shuttle is a complimentary amenity, guests who elect to use alternative transportation services (such as Uber, Lyft, or taxis) do so at their own discretion and convenience. Any associated costs are the responsibility of the guest and will not be covered, credited, or reimbursed by management. Thank you for your understanding.'
+            : 'Welcome Patrons Your Parking fee covers vehicle storage ONLY. To make your travels easier, our complimentary shuttle is a FREE, OPTIONAL service provided for your convenience. Courtesy Shuttles to and from the airport run 24 hours a day, 7 days a week, ON DEMAND ONLY. As the shuttle is a complimentary amenity, guests who elect to use alternative transportation services (such as Uber, Lyft, or taxis) do so at their own discretion and convenience. Any associated costs are the responsibility of the guest and will not be covered, credited, or reimbursed by management. Thank you for your understanding.',
         'access_fee_label' => reservation_access_fee_label($payload),
     ];
 }
@@ -175,7 +177,7 @@ function reservation_email_footer(array $context): string
 function reservation_email_arrival_note(array $context): string
 {
     if ($context['is_cruise']) {
-        return '<b>NOTE:</b> PLEASE ARRIVE AT OUR FACILITY AT LEAST 1-2 HOURS PRIOR TO YOUR DEPARTURE TIME TO ASSURE YOU ARRIVE AT THE CRUISE PORT WITH AMPLE TIME!';
+        return '<b>NOTE:</b> PLEASE ARRIVE AT OUR FACILITY AT LEAST 1-2 HOURS PRIOR TO YOUR DEPARTURE TIME TO ENSURE YOU ARRIVE AT THE CRUISE PORT WITH AMPLE TIME!';
     }
 
     return '<b>NOTE: PLEASE ARRIVE AT OUR FACILITY AT LEAST 2-3 HOURS PRIOR TO YOUR DEPARTURE TIME TO ASSURE YOU ARRIVE AT THE AIRPORT WITH AMPLE TIME!</b>';
@@ -183,10 +185,12 @@ function reservation_email_arrival_note(array $context): string
 
 function reservation_email_shuttle_note(array $context): string
 {
+    $destination = $context['is_cruise'] ? 'Cruise Ship Terminal' : 'airport';
+
     return '<b>Welcome Patrons</b><br><br>'
         . 'Your Parking fee covers vehicle storage ONLY.<br><br>'
         . 'To make your travels easier, our complimentary shuttle is a FREE, OPTIONAL service provided for your convenience.<br><br>'
-        . 'Courtesy Shuttles to and from the airport run 24 hours a day, 7 days a week, ON DEMAND ONLY.<br><br>'
+        . 'Courtesy Shuttles to and from the ' . e($destination) . ' run 24 hours a day, 7 days a week, ON DEMAND ONLY.<br><br>'
         . 'As the shuttle is a complimentary amenity, guests who elect to use alternative transportation services (such as Uber, Lyft, or taxis) do so at their own discretion and convenience. Any associated costs are the responsibility of the guest and will not be covered, credited, or reimbursed by management.<br><br>'
         . 'Thank you for your understanding.';
 }
